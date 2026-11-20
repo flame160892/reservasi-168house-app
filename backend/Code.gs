@@ -23,7 +23,9 @@ const SHEETS = {
   Prices:       ['id', 'outlet_id', 'category', 'item', 'price', 'min_pax', 'desc', 'active'],
   Reservations: ['id', 'created', 'name', 'phone', 'email', 'outlet_id', 'outlet_name', 'date', 'time',
                  'pax', 'price_id', 'package', 'price', 'notes', 'status', 'admin_note', 'updated'],
-  Members:      ['phone', 'name', 'email', 'created', 'visits']
+  Members:      ['phone', 'name', 'email', 'created', 'visits'],
+  Reviews:      ['id', 'name', 'text', 'rating', 'photo', 'active'],
+  Subscribers:  ['email', 'created']
 };
 
 const DEFAULT_SETTINGS = {
@@ -31,7 +33,7 @@ const DEFAULT_SETTINGS = {
   tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
   logo_url: '',
   bg_url: '',
-  theme: 'gold',
+  theme: 'latte',
   color_primary: '',
   color_bg: '',
   color_card: '',
@@ -40,11 +42,15 @@ const DEFAULT_SETTINGS = {
   fonnte_token: '',
   notify_customer: 'FALSE',
   instagram: '',
-  about: ''
+  about: '',
+  hero_eyebrow: 'PREMIUM NIGHTLIFE EXPERIENCE',
+  hero_title: 'Lebih Dari Sekadar',
+  hero_accent: 'Hiburan Malam',
+  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife'
 };
 
 const PRIVATE_KEYS = ['fonnte_token', 'admin_pass_hash'];
-const EDITABLE_SHEETS = ['Outlets', 'Events', 'Promos', 'Prices'];
+const EDITABLE_SHEETS = ['Outlets', 'Events', 'Promos', 'Prices', 'Reviews'];
 const TZ = Session.getScriptTimeZone() || 'Asia/Makassar';
 const FOLDER_NAME = 'Reservasi App - Gambar';
 // ID Google Sheet (opsional; wajib jika script tidak terikat ke Sheet)
@@ -120,6 +126,7 @@ const PUBLIC_ACTIONS = {
   register: register_,
   myData: myData_,
   createReservation: createReservation_,
+  subscribe: subscribe_,
   adminLogin: adminLogin_
 };
 
@@ -164,8 +171,17 @@ function getAll_() {
     outlets: rows_('Outlets').filter(isActive_).sort(bySort_),
     events: rows_('Events').filter(isActive_),
     promos: rows_('Promos').filter(isActive_),
-    prices: rows_('Prices').filter(isActive_)
+    prices: rows_('Prices').filter(isActive_),
+    reviews: rows_('Reviews').filter(isActive_)
   };
+}
+
+function subscribe_(p) {
+  const email = String(p.email || '').trim().toLowerCase();
+  if (!isEmail_(email)) throw new Error('Email tidak valid');
+  const ex = rows_('Subscribers').filter(function (x) { return String(x.email).toLowerCase() === email; })[0];
+  if (!ex) upsert_('Subscribers', { email: email, created: now_() });
+  return {};
 }
 
 function register_(p) {
@@ -249,6 +265,8 @@ function adminData_() {
     events: rows_('Events'),
     promos: rows_('Promos'),
     prices: rows_('Prices'),
+    reviews: rows_('Reviews'),
+    subscribers: rows_('Subscribers').length,
     reservations: rows_('Reservations')
       .sort(function (a, b) { return String(b.created).localeCompare(String(a.created)); })
       .slice(0, 500),
@@ -400,8 +418,15 @@ function ss_() {
 }
 
 function sheet_(name) {
-  const sh = ss_().getSheetByName(name);
-  if (!sh) throw new Error('Sheet "' + name + '" belum ada. Jalankan setup() dulu.');
+  let sh = ss_().getSheetByName(name);
+  if (!sh) {
+    if (!SHEETS[name]) throw new Error('Sheet "' + name + '" belum ada. Jalankan setup() dulu.');
+    sh = ss_().insertSheet(name);
+    const h = SHEETS[name];
+    sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold').setBackground('#1e1e1e').setFontColor('#F5C542');
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, sh.getMaxRows(), h.length).setNumberFormat('@');
+  }
   return sh;
 }
 

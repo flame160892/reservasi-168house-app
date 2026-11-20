@@ -29,7 +29,7 @@ const isActive = v => !(v === false || String(v).toUpperCase() === 'FALSE' || v 
 const normWa = p => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '62' + d.slice(1); else if (d.startsWith('8')) d = '62' + d; return d; };
 const cssUrl = u => `url("${String(u).replace(/["\\\n\r]/g, '')}")`;
 const hashCode = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
-const phBg = t => { const h = hashCode(t) % 360; return `linear-gradient(135deg,hsl(${h} 70% 38%),hsl(${(h + 70) % 360} 80% 14%))`; };
+const phBg = t => { const h = hashCode(t); const a = 110 + h % 90, m = 55 + h % 30; return `linear-gradient(${a}deg,color-mix(in srgb,var(--primary) ${m}%,#f3d9b8),color-mix(in srgb,var(--primary) 70%,#1a0d05))`; };
 const bgStyle = (url, t) => url ? `background-image:${cssUrl(url)}` : `background-image:${phBg(t || 'x')}`;
 const isEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').trim());
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -66,12 +66,22 @@ const P = {
   img: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4"/>',
   out: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/>',
-  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  sofa: '<path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z"/><path d="M5 18v2M19 18v2"/>',
+  gift: '<rect x="3" y="8" width="18" height="13" rx="1"/><path d="M3 12h18M12 8v13M12 8S10.5 3 8 4.5 9.5 8 12 8zm0 0s1.5-5 4-3.5S14.5 8 12 8z"/>',
+  heart: '<path d="M12 20s-7.5-4.6-9.2-9.3C1.6 7.2 4 4 7.3 4c2 0 3.5 1.1 4.7 2.6C13.2 5.1 14.7 4 16.7 4 20 4 22.4 7.2 21.2 10.7 19.5 15.4 12 20 12 20z"/>',
+  send: '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',
+  leaf: '<path d="M4 20c8 0 15-5 16-16-9 0-15 5-16 13M4 20c2-5 6-8 10-10"/>',
+  search2: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${P[n] || ''}</svg>`;
 
 /* ---------------- themes ---------------- */
 const THEMES = {
+  latte:   { name: 'Latte Cream', primary: '#8B4A25', bg: '#FBF6F0', card: '#FFFFFF', text: '#2A1A10', muted: '#7D6A5D' },
+  mocha:   { name: 'Mocha Dark',  primary: '#C88A5A', bg: '#17110D', card: '#231A14', text: '#FFFFFF', muted: '#A8978A' },
   gold:    { name: 'Gold Night',  primary: '#F5C542', bg: '#121212', card: '#1E1E1E', text: '#FFFFFF', muted: '#9A9A9A' },
   red:     { name: 'Red Party',   primary: '#FF3B4E', bg: '#110A0B', card: '#21151A', text: '#FFFFFF', muted: '#A99A9C' },
   neon:    { name: 'Neon Blue',   primary: '#00C2FF', bg: '#080D18', card: '#121B2C', text: '#FFFFFF', muted: '#8EA0B8' },
@@ -88,7 +98,7 @@ function lum(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 function applyTheme(s) {
-  const t = Object.assign({}, THEMES[s.theme] || THEMES.gold);
+  const t = Object.assign({}, THEMES[s.theme] || THEMES.latte);
   if (s.color_primary) t.primary = s.color_primary;
   if (s.color_bg) t.bg = s.color_bg;
   if (s.color_card) t.card = s.color_card;
@@ -102,19 +112,22 @@ function applyTheme(s) {
   r.setProperty('--card2', lightBg ? '#ECE9E3' : 'rgba(255,255,255,.08)');
   r.setProperty('--text', t.text);
   r.setProperty('--muted', t.muted);
-  r.setProperty('--line', lightBg ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.12)');
+  r.setProperty('--line', lightBg ? 'rgba(60,30,10,.12)' : 'rgba(255,255,255,.12)');
+  document.documentElement.classList.toggle('is-light', lightBg);
   const meta = $('meta[name=theme-color]'); if (meta) meta.content = t.bg;
 }
 
 /* ---------------- state ---------------- */
 const DEFAULTS = {
   app_name: 'WEON', tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
-  logo_url: '', bg_url: '', theme: 'gold', admin_wa: '', instagram: '', about: ''
+  logo_url: '', bg_url: '', theme: 'latte', admin_wa: '', instagram: '', about: '',
+  hero_eyebrow: 'PREMIUM NIGHTLIFE EXPERIENCE', hero_title: 'Lebih Dari Sekadar', hero_accent: 'Hiburan Malam',
+  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife'
 };
 const tokSaved = store.get('admin_tok', null);
 const S = {
   screen: 'welcome', tab: 'home', seg: 'events',
-  settings: Object.assign({}, DEFAULTS), outlets: [], events: [], promos: [], prices: [],
+  settings: Object.assign({}, DEFAULTS), outlets: [], events: [], promos: [], prices: [], reviews: [], revIdx: 0,
   user: store.get('user', null), guest: store.get('guest', false), my: null,
   city: '', q: '',
   adminToken: tokSaved && tokSaved.exp > Date.now() ? tokSaved.t : null,
@@ -170,7 +183,8 @@ const Mock = {
         { id: 'PRO-1', title: 'Buy 2 Get 1 Bottle', image: '', desc: 'Berlaku setiap Kamis.', valid_until: '', outlet_id: o1, active: 'TRUE' },
         { id: 'PRO-2', title: 'Happy Hour 50%', image: '', desc: 'Jam 19:00 - 21:00.', valid_until: '', outlet_id: o2, active: 'TRUE' }
       ],
-      reservations: [], members: []
+      reviews: [{ id: 'REV-1', name: 'Contoh Ulasan', text: 'Ulasan tamu akan tampil di sini — tambahkan ulasan asli dari Admin > Ulasan.', rating: '5', photo: '', active: 'TRUE' }],
+      reservations: [], members: [], subscribers: []
     };
   },
   db() { let d = store.get(this.key, null); if (!d) { d = this.seed(); store.set(this.key, d); } return d; },
@@ -180,12 +194,14 @@ const Mock = {
     const d = this.db(); const ok = o => Object.assign({ ok: true }, o || {});
     const adminOnly = ['adminData', 'saveSettings', 'saveItem', 'deleteItem', 'updateReservation', 'uploadImage', 'changePassword'];
     if (adminOnly.includes(a) && p.token !== 'demo-token') throw new Error('AUTH: Sesi admin habis');
-    const tbl = s => ({ Outlets: 'outlets', Events: 'events', Promos: 'promos', Prices: 'prices' }[s]);
+    const tbl = s => ({ Outlets: 'outlets', Events: 'events', Promos: 'promos', Prices: 'prices', Reviews: 'reviews' }[s]);
+    d.reviews = d.reviews || []; d.subscribers = d.subscribers || [];
     switch (a) {
       case 'getAll': {
         const s = Object.assign({}, d.settings); delete s.fonnte_token;
-        return ok({ settings: s, outlets: d.outlets.filter(r => isActive(r.active)).sort((x, y) => (+x.sort || 999) - (+y.sort || 999)), events: d.events.filter(r => isActive(r.active)), promos: d.promos.filter(r => isActive(r.active)), prices: d.prices.filter(r => isActive(r.active)) });
+        return ok({ settings: s, outlets: d.outlets.filter(r => isActive(r.active)).sort((x, y) => (+x.sort || 999) - (+y.sort || 999)), events: d.events.filter(r => isActive(r.active)), promos: d.promos.filter(r => isActive(r.active)), prices: d.prices.filter(r => isActive(r.active)), reviews: d.reviews.filter(r => isActive(r.active)) });
       }
+      case 'subscribe': { if (!isEmail(p.email)) throw new Error('Email tidak valid'); if (!d.subscribers.find(x => x.email === p.email)) d.subscribers.push({ email: p.email, created: new Date().toISOString() }); this.save(d); return ok(); }
       case 'register': {
         const ph = normWa(p.phone); if (ph.length < 9) throw new Error('Nomor WhatsApp tidak valid');
         if (!isEmail(p.email)) throw new Error('Email wajib diisi dengan benar');
@@ -209,7 +225,7 @@ const Mock = {
         this.save(d); return ok({ reservation: rec, admin_wa: normWa(d.settings.admin_wa) });
       }
       case 'adminLogin': if (p.password !== d.pass) throw new Error('Password salah (demo: admin123)'); return ok({ token: 'demo-token' });
-      case 'adminData': return ok({ settings: Object.assign({}, d.settings), outlets: d.outlets, events: d.events, promos: d.promos, prices: d.prices, reservations: d.reservations.slice().sort((x, y) => y.created.localeCompare(x.created)), members: d.members.length });
+      case 'adminData': return ok({ settings: Object.assign({}, d.settings), outlets: d.outlets, events: d.events, promos: d.promos, prices: d.prices, reviews: d.reviews, subscribers: d.subscribers.length, reservations: d.reservations.slice().sort((x, y) => y.created.localeCompare(x.created)), members: d.members.length });
       case 'saveSettings': Object.assign(d.settings, p.settings); this.save(d); return ok({ settings: d.settings });
       case 'saveItem': {
         const t = d[tbl(p.sheet)]; const it = Object.assign({}, p.item);
@@ -309,7 +325,7 @@ function compressImage(file, max = 1280, q = 0.82) {
 /* ---------------- data loading ---------------- */
 function applyData(r) {
   S.settings = Object.assign({}, DEFAULTS, r.settings || {});
-  S.outlets = r.outlets || []; S.events = r.events || []; S.promos = r.promos || []; S.prices = r.prices || [];
+  S.outlets = r.outlets || []; S.events = r.events || []; S.promos = r.promos || []; S.prices = r.prices || []; S.reviews = r.reviews || [];
   applyTheme(S.settings);
   document.title = S.settings.app_name || 'Reservasi';
 }
@@ -332,7 +348,7 @@ function render() {
   if (S.screen === 'welcome') app.innerHTML = vWelcome();
   else if (S.screen === 'login') app.innerHTML = vLogin();
   else if (S.screen === 'admin') app.innerHTML = vAdmin();
-  else { app.innerHTML = `<div class="main">${vTab()}</div>${vNav()}`; if (S.tab === 'home') startSlides(); }
+  else { app.innerHTML = `${vHeader()}<div class="main tab-${S.tab}">${vTab()}${vFooter()}</div>${vNav()}`; if (S.tab === 'home') startSlides(); }
   if (DEMO && !$('.demo-bar')) document.body.insertAdjacentHTML('beforeend', '<div class="demo-bar">MODE DEMO</div>');
 }
 
@@ -380,30 +396,78 @@ function vTab() {
   }
 }
 
+function vHeader() {
+  const s = S.settings;
+  const lk = (k, label) => `<button class="${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${label}</button>`;
+  return `<header class="hdr"><div class="hdr-in">
+    <button class="brand" data-act="tab" data-tab="home">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="brand-mark">${ic('leaf')}</span>`}
+      <span class="brand-tx"><b>${esc(s.app_name)}</b><small>Reservasi</small></span></button>
+    <nav class="hdr-nav">${lk('home', 'Beranda')}${lk('rsvp', 'Reservasi')}${lk('events', 'Acara & Promo')}<button data-act="menu" data-k="prices">Daftar Harga</button>${lk('profile', 'Profil')}<button data-act="contact">Kontak</button></nav>
+    <div class="hdr-act">${S.user ? `<button class="hdr-av" data-act="tab" data-tab="profile" title="Profil">${esc((S.user.name || '?')[0].toUpperCase())}</button>` : `<button class="hdr-login" data-act="goLogin">Masuk</button>`}
+      <button class="btn btn-primary btn-sm" data-act="tab" data-tab="rsvp">Reservasi ${ic('arrow')}</button></div>
+  </div></header>`;
+}
+function vFooter() {
+  const s = S.settings;
+  return `<footer class="ftr"><div><b>${esc(s.app_name)}</b> — ${esc(s.tagline)}</div><div class="muted">© ${new Date().getFullYear()} ${esc(s.app_name)}${s.instagram ? ' · @' + esc(String(s.instagram).replace('@', '')) : ''}</div></footer>`;
+}
+function secHead(title, k, label = 'Lihat Semua') {
+  return `<div class="sh"><h2 class="display">${esc(title)}<i class="sh-line"></i></h2>${k ? `<button data-act="seeAll" data-k="${k}">${label} ${ic('arrow')}</button>` : ''}</div>`;
+}
+function dCard(x, act, img, sub) {
+  return `<button class="dcard" data-act="${act}" data-id="${esc(x.id)}">
+    <span class="dcard-img" style="${bgStyle(img, x.title)}">${img ? '' : `<span class="ph-title">${esc(x.title)}</span>`}</span>
+    <span class="dcard-b"><span><b>${esc(x.title)}</b><small>${esc(sub || '')}</small></span><span class="go">${ic('arrow')}</span></span></button>`;
+}
 function vHome() {
   const s = S.settings;
   const promos = validPromos();
-  const slides = promos.length ? promos : [{ id: '', title: s.app_name, desc: s.tagline, image: s.bg_url }];
   const ev = upcomingEvents();
-  const menu = [
-    ['rsvp', 'cal', 'Reservasi'], ['prices', 'money', 'Daftar Harga'], ['events', 'calg', 'Acara'], ['promos', 'tag', 'Promo'],
-    ['outlets', 'store', 'Outlet'], ['myRes', 'list', 'Reservasi Saya'], ['contact', 'chat', 'Hubungi Kami'], ['qr', 'qr', 'Member QR']
-  ];
-  return `<div class="hero">
-      <div class="hero-logo">${logoHtml()}</div>
-      <div class="slides" id="slides">${slides.map(p => `<button class="slide" ${p.id ? `data-act="promo" data-id="${esc(p.id)}"` : ''} style="${p.image ? `background-image:${cssUrl(p.image)}` : `background-image:${phBg(p.title)}`}">
-        <div class="cap"><b>${esc(p.title)}</b><small>${esc(p.desc || '').slice(0, 90)}</small></div></button>`).join('')}</div>
-      ${slides.length > 1 ? `<div class="dots" id="dots">${slides.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
-    </div>
-    <div class="pad">
-      ${S.user ? `<div class="prompt"><div class="member-mini"><div class="avatar">${esc((S.user.name || '?')[0].toUpperCase())}</div><div><b>Halo, ${esc(S.user.name)}</b><div class="muted" style="font-size:13px">Siap untuk malam ini? Pesan meja sekarang.</div></div></div><button class="btn btn-primary btn-sm" data-act="tab" data-tab="rsvp">Reservasi</button></div>`
-        : `<div class="prompt"><p>Daftar dengan email untuk bisa reservasi & lihat riwayat reservasi Anda</p><button class="btn btn-primary" data-act="goLogin">Masuk/Daftar</button></div>`}
-      <div class="menu-grid">${menu.map(m => `<button class="mi" data-act="menu" data-k="${m[0]}"><span class="ic">${ic(m[1])}</span>${m[2]}</button>`).join('')}</div>
-      <div class="sec-h"><h2>Acara</h2><button data-act="seeAll" data-k="events">Lihat semua</button></div>
-      ${ev.length ? `<div class="hs">${ev.map(posterCard).join('')}</div>` : '<div class="empty">Belum ada acara</div>'}
-      <div class="sec-h"><h2>Promo</h2><button data-act="seeAll" data-k="promos">Lihat semua</button></div>
-      ${promos.length ? `<div class="hs">${promos.map(p => `<button class="pcard" data-act="promo" data-id="${esc(p.id)}" style="${bgStyle(p.image, p.title)}">${p.image ? '' : `<div class="ph-title">${esc(p.title)}</div>`}<div class="ov">${p.image ? `<b>${esc(p.title)}</b>` : ''}<small>${p.valid_until ? 's/d ' + esc(fmtDate(p.valid_until)) : esc(outletName(p.outlet_id))}</small></div></button>`).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}
-    </div>`;
+  const slides = [s.bg_url, ...promos.map(p => p.image)].filter(Boolean);
+  const heroImgs = slides.length ? slides : [''];
+  const outletPhoto = (S.outlets.find(o => o.photo) || {}).photo || s.bg_url || '';
+  const feats = [['sofa', 'Meja & VIP'], ['music', 'Live DJ'], ['gift', 'Promo Spesial'], ['star', 'Member Rewards']];
+  const band = [['cal', 'Reservasi', 'Mudah & Cepat'], ['music', 'Musik & DJ', 'Setiap Malam'], ['heart', 'Pelayanan', 'Ramah & Profesional'], ['people', 'Tempat Nyaman', 'Untuk Bersantai']];
+  const rv = S.reviews; const r = rv.length ? rv[S.revIdx % rv.length] : null;
+  return `<section class="hero2">
+      <div class="hero2-tx">
+        <div class="eyebrow">${esc(s.hero_eyebrow || DEFAULTS.hero_eyebrow)}</div>
+        <h1 class="display hero2-h">${esc(s.hero_title || DEFAULTS.hero_title)}<br><em>${esc(s.hero_accent || DEFAULTS.hero_accent)}</em><span class="leaf">${ic('leaf')}</span></h1>
+        <p class="lead">${esc(s.tagline)}</p>
+        <div class="cta"><button class="btn btn-primary" data-act="tab" data-tab="rsvp">Reservasi Sekarang ${ic('arrow')}</button>
+          <button class="btn btn-outline" data-act="menu" data-k="outlets">${ic('pin')} Cari Outlet</button></div>
+        <div class="feat4">${feats.map(f => `<div><span>${ic(f[0])}</span>${f[1]}</div>`).join('')}</div>
+      </div>
+      <div class="hero2-media">
+        <div class="slides" id="slides">${heroImgs.map(u => `<div class="slide" style="${u ? `background-image:${cssUrl(u)}` : `background-image:${phBg(s.app_name)}`}">${u ? '' : `<span class="hero-ph">${logoHtml()}</span>`}</div>`).join('')}</div>
+        ${heroImgs.length > 1 ? `<div class="dots" id="dots">${heroImgs.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+      </div>
+    </section>
+    ${S.user ? '' : `<div class="pad"><div class="prompt"><p>Daftar dengan email untuk bisa reservasi & lihat riwayat reservasi Anda</p><button class="btn btn-primary btn-sm" data-act="goLogin">Masuk/Daftar</button></div></div>`}
+    <section class="sec pad">${secHead('Acara Pilihan', 'events')}
+      ${ev.length ? `<div class="drow">${ev.map(e => dCard(e, 'event', e.poster, `${fmtDate(e.date)}${e.time ? ' • ' + e.time : ''}`)).join('')}</div>` : '<div class="empty">Belum ada acara</div>'}</section>
+    <section class="about2 pad">
+      <div class="about2-img" style="${bgStyle(outletPhoto, s.app_name + 'x')}">${outletPhoto ? '' : `<span class="hero-ph">${logoHtml()}</span>`}</div>
+      <div class="about2-tx"><div class="eyebrow">${esc(s.app_name)}</div><h2 class="display">${esc(s.about_title || DEFAULTS.about_title)}</h2>
+        <p class="lead">${esc((s.about || s.tagline).slice(0, 220))}${(s.about || '').length > 220 ? '…' : ''}</p>
+        <button class="btn btn-primary" data-act="${s.about ? 'about' : 'menu'}" data-k="outlets">${s.about ? 'Tentang Kami' : 'Lihat Outlet'} ${ic('arrow')}</button></div>
+    </section>
+    <section class="pad"><div class="band">${band.map(b => `<div><span>${ic(b[0])}</span><b>${b[1]}</b><small>${b[2]}</small></div>`).join('')}</div></section>
+    <section class="split pad">
+      <div class="sec">${secHead('Promo Spesial', 'promos', 'Lihat Semua')}
+        ${promos.length ? `<div class="drow drow-sm">${promos.map(p => dCard(p, 'promo', p.image, p.valid_until ? 's/d ' + fmtDate(p.valid_until) : outletName(p.outlet_id))).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}</div>
+      ${r ? `<div class="sec">${secHead('Kata Tamu Kami')}
+        <div class="review"><button class="rv-nav" data-act="rev" data-d="-1" aria-label="Sebelumnya">${ic('back')}</button>
+          <div class="rv-in"><div class="rv-ph" style="${r.photo ? `background-image:${cssUrl(r.photo)}` : ''}">${r.photo ? '' : esc((r.name || '?')[0])}</div>
+            <div><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, Number(r.rating) || 5)))}</div><p>“${esc(r.text)}”</p><b>${esc(r.name)}</b></div></div>
+          <button class="rv-nav" data-act="rev" data-d="1" aria-label="Berikutnya">${ic('chev')}</button></div>
+        ${rv.length > 1 ? `<div class="rv-dots">${rv.map((_, i) => `<i class="${i === S.revIdx % rv.length ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>` : ''}
+    </section>
+    <section class="pad"><form class="news" id="newsForm">
+      <h2 class="display">Dapatkan Info<br><em>Promo Terbaru!</em></h2>
+      <p>Daftarkan email untuk penawaran spesial, event terbaru & promo ${esc(s.app_name)}.</p>
+      <div class="news-in"><input type="email" name="email" required placeholder="Masukkan email Anda" value="${esc(S.user && S.user.email || '')}"><button aria-label="Kirim">${ic('send')}</button></div>
+    </form></section>`;
 }
 function posterCard(e) {
   return `<button class="poster" data-act="event" data-id="${esc(e.id)}" style="${bgStyle(e.poster, e.title)}">${e.poster ? '' : `<div class="ph-title">${esc(e.title)}</div>`}
@@ -614,6 +678,11 @@ function openEditProfile() {
 
 /* =================== ADMIN =================== */
 const SCHEMA = {
+  Reviews: { key: 'reviews', label: 'Ulasan', title: 'name', img: 'photo',
+    sub: r => `${'★'.repeat(Number(r.rating) || 5)} — ${String(r.text || '').slice(0, 60)}`,
+    fields: [{ k: 'name', l: 'Nama tamu', req: 1 }, { k: 'text', l: 'Isi ulasan (dari tamu asli)', t: 'textarea', req: 1 },
+      { k: 'rating', l: 'Rating (1-5)', t: 'number' }, { k: 'photo', l: 'Foto (opsional, izin tamu)', t: 'image', max: 400 },
+      { k: 'active', l: 'Tampilkan di beranda', t: 'bool' }] },
   Events: { key: 'events', label: 'Event', title: 'title', img: 'poster',
     sub: r => `${fmtDate(r.date)} ${r.time || ''} • ${outletName(r.outlet_id)}`,
     fields: [{ k: 'title', l: 'Judul event', req: 1 }, { k: 'date', l: 'Tanggal', t: 'date' }, { k: 'time', l: 'Jam mulai', t: 'time' },
@@ -637,7 +706,7 @@ const SCHEMA = {
       { k: 'item', l: 'Nama item / meja / paket', req: 1 }, { k: 'price', l: 'Harga (Rp, angka saja)', t: 'number', req: 1 },
       { k: 'min_pax', l: 'Minimal orang', t: 'number' }, { k: 'desc', l: 'Keterangan', t: 'textarea' }, { k: 'active', l: 'Tampilkan di aplikasi', t: 'bool' }] }
 };
-const ADMIN_TABS = [['res', 'Reservasi'], ['Events', 'Event'], ['Promos', 'Promo'], ['Outlets', 'Outlet'], ['Prices', 'Harga'], ['look', 'Tampilan'], ['contact', 'Kontak & Notif'], ['sec', 'Keamanan']];
+const ADMIN_TABS = [['res', 'Reservasi'], ['Events', 'Event'], ['Promos', 'Promo'], ['Outlets', 'Outlet'], ['Prices', 'Harga'], ['Reviews', 'Ulasan'], ['look', 'Tampilan'], ['contact', 'Kontak & Notif'], ['sec', 'Keamanan']];
 const STATUSES = ['Menunggu', 'Dikonfirmasi', 'Selesai', 'Ditolak', 'Batal'];
 
 function vAdmin() {
@@ -737,15 +806,19 @@ function openItemEditor(sheet, id) {
 }
 function adminLook(s) {
   const custom = !!(s.color_primary || s.color_bg || s.color_card);
-  const t = THEMES[s.theme] || THEMES.gold;
+  const t = THEMES[s.theme] || THEMES.latte;
   return `<form id="lookForm" class="box">
     <h3>Identitas</h3>
     <label class="lb">Nama aplikasi / venue</label><input name="app_name" required value="${esc(s.app_name)}">
-    <label class="lb">Tagline (halaman pembuka)</label><textarea name="tagline" rows="2">${esc(s.tagline)}</textarea>
+    <label class="lb">Tagline (pembuka & beranda)</label><textarea name="tagline" rows="2">${esc(s.tagline)}</textarea>
+    <label class="lb">Teks kecil di atas judul beranda</label><input name="hero_eyebrow" value="${esc(s.hero_eyebrow || DEFAULTS.hero_eyebrow)}">
+    <div class="row"><div><label class="lb">Judul beranda</label><input name="hero_title" value="${esc(s.hero_title || DEFAULTS.hero_title)}"></div>
+      <div><label class="lb">Kata miring (warna utama)</label><input name="hero_accent" value="${esc(s.hero_accent || DEFAULTS.hero_accent)}"></div></div>
+    <label class="lb">Judul bagian "Tentang"</label><input name="about_title" value="${esc(s.about_title || DEFAULTS.about_title)}">
     ${imageField('logo_url', 'Logo (PNG transparan disarankan)', s.logo_url, 600)}
-    ${imageField('bg_url', 'Background halaman pembuka (portrait)', s.bg_url, 1600)}
+    ${imageField('bg_url', 'Gambar utama (halaman pembuka & banner beranda)', s.bg_url, 1800)}
     <h3 style="margin-top:28px">Tema warna</h3>
-    <div class="themes">${Object.keys(THEMES).map(k => { const th = THEMES[k]; return `<label class="theme-opt"><input type="radio" name="theme" value="${k}" ${(s.theme || 'gold') === k ? 'checked' : ''}>
+    <div class="themes">${Object.keys(THEMES).map(k => { const th = THEMES[k]; return `<label class="theme-opt"><input type="radio" name="theme" value="${k}" ${(s.theme || 'latte') === k ? 'checked' : ''}>
       <span class="sw" style="background:${th.bg}"><i style="background:${th.primary}"></i></span>${th.name}</label>`; }).join('')}</div>
     <label class="switch"><input type="checkbox" name="use_custom" ${custom ? 'checked' : ''}> Pakai warna custom sendiri</label>
     <div class="row"><div><label class="lb">Warna utama</label><input type="color" name="color_primary" value="${esc(s.color_primary || t.primary)}"></div>
@@ -799,6 +872,7 @@ const actions = {
     if (k === 'outlets') return actions.tab({ dataset: { tab: 'rsvp' } });
     actions.tab({ dataset: { tab: k } });
   },
+  rev(el) { const n = S.reviews.length; if (!n) return; S.revIdx = (S.revIdx + Number(el.dataset.d) + n) % n; const y = window.scrollY; render(); window.scrollTo(0, y); },
   seeAll(el) { S.seg = el.dataset.k; actions.tab({ dataset: { tab: 'events' } }); },
   seg(el) { S.seg = el.dataset.seg; render(); },
   search() { S.q = ($('#qInput') || {}).value || ''; const g = $('#outletGrid'); if (g) g.innerHTML = outletCards(); },
@@ -913,6 +987,10 @@ document.addEventListener('submit', async ev => {
       render(); toast('Selamat datang, ' + S.user.name); loadMy();
     }
     else if (f.id === 'resForm') await submitReservation(f);
+    else if (f.id === 'newsForm') {
+      const em = formObj(f).email; if (!isEmail(em)) return toast('Email tidak valid');
+      busy(true, 'Mendaftarkan…'); await api('subscribe', { email: em }); f.reset(); toast('Terima kasih! Info promo akan dikirim ke ' + em, 3500);
+    }
     else if (f.id === 'adminLoginForm') {
       busy(true, 'Masuk…');
       const r = await api('adminLogin', { password: formObj(f).password });
