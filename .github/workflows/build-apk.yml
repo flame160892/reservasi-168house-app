@@ -2,7 +2,7 @@ name: Build APK RESERVASI 168HOUSE
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -14,339 +14,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+      - name: Install dependencies
+        run: npm install
 
-      - name: Buat proyek Android (WebView)
+      - name: Buat proyek Android
+        run: npx cap add android
+
+      - name: Generate ikon & splash dari folder resources/
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#121212' --splashBackgroundColor '#121212' || echo "lewati ikon"
+
+      - name: Sinkronkan web ke Android
+        run: npx cap sync android
+
+      - name: Build APK RESERVASI 168HOUSE
+        working-directory: android
         run: |
-          set -e
-          PKG=app/src/main/java/com/house168/reservasi
-          mkdir -p $PKG app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "Reservasi168House"
-          include ':app'
-          EOF
+      - name: Ganti nama APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "reservasi-app.apk"
 
-          cat > build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application' version '8.5.2' apply false
-          }
-          EOF
-
-          cat > gradle.properties <<'EOF'
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=false
-          android.nonTransitiveRClass=true
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-          android {
-              namespace 'com.house168.reservasi'
-              compileSdk 34
-              defaultConfig {
-                  applicationId 'com.house168.reservasi'
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName '1.0'
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.debug
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          EOF
-
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <queries>
-                  <intent>
-                      <action android:name="android.intent.action.VIEW" />
-                      <data android:scheme="https" />
-                  </intent>
-                  <package android:name="com.whatsapp" />
-                  <package android:name="com.whatsapp.w4b" />
-              </queries>
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:roundIcon="@mipmap/ic_launcher"
-                  android:label="@string/app_name"
-                  android:theme="@style/AppTheme"
-                  android:hardwareAccelerated="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
-                      android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat > app/src/main/res/values/strings.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <string name="app_name">168HOUSE Reservasi</string>
-              <color name="bg">#05070D</color>
-              <color name="ic_bg">#EA580C</color>
-              <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
-                  <item name="android:windowBackground">@color/bg</item>
-                  <item name="android:statusBarColor">@color/bg</item>
-                  <item name="android:navigationBarColor">@color/bg</item>
-                  <item name="android:colorAccent">#EA580C</item>
-              </style>
-          </resources>
-          EOF
-
-          cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#FFFFFF"
-                  android:pathData="M42,54a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" />
-              <path android:fillColor="#FFE7C2"
-                  android:pathData="M49,35a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z M49,73a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z M30,54a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z M68,54a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z" />
-          </vector>
-          EOF
-
-          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_bg" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-          </adaptive-icon>
-          EOF
-
-          cat > app/src/main/res/drawable/ic_legacy.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item><shape android:shape="oval"><solid android:color="#EA580C" /></shape></item>
-              <item android:drawable="@drawable/ic_launcher_foreground" />
-          </layer-list>
-          EOF
-          mkdir -p app/src/main/res/mipmap
-          cp app/src/main/res/drawable/ic_legacy.xml app/src/main/res/mipmap/ic_launcher.xml
-
-          cat > $PKG/MainActivity.java <<'EOF'
-          package com.house168.reservasi;
-
-          import android.app.Activity;
-          import android.content.ActivityNotFoundException;
-          import android.content.Intent;
-          import android.graphics.Bitmap;
-          import android.graphics.Color;
-          import android.net.Uri;
-          import android.os.Bundle;
-          import android.os.Message;
-          import android.webkit.CookieManager;
-          import android.webkit.ValueCallback;
-          import android.webkit.WebChromeClient;
-          import android.webkit.WebResourceError;
-          import android.webkit.WebResourceRequest;
-          import android.webkit.WebSettings;
-          import android.webkit.WebView;
-          import android.webkit.WebViewClient;
-          import android.widget.Toast;
-
-          public class MainActivity extends Activity {
-
-              static final String APP_URL = "https://script.google.com/macros/s/AKfycbwjLuov1W07it8VEMYnhEo91oRygOHNvu50Z-NjWVON7hkjEqFCvrkMy6phqJG_ad7sbQ/exec";
-              static final int FILE_REQ = 1001;
-
-              private WebView web;
-              private ValueCallback<Uri[]> fileCallback;
-
-              @Override
-              protected void onCreate(Bundle state) {
-                  super.onCreate(state);
-                  web = new WebView(this);
-                  web.setBackgroundColor(Color.parseColor("#05070D"));
-                  setContentView(web);
-
-                  WebSettings s = web.getSettings();
-                  s.setJavaScriptEnabled(true);
-                  s.setDomStorageEnabled(true);
-                  s.setDatabaseEnabled(true);
-                  s.setLoadWithOverviewMode(true);
-                  s.setUseWideViewPort(true);
-                  s.setSupportMultipleWindows(true);
-                  s.setJavaScriptCanOpenWindowsAutomatically(true);
-                  s.setMediaPlaybackRequiresUserGesture(false);
-                  s.setAllowFileAccess(false);
-
-                  CookieManager cm = CookieManager.getInstance();
-                  cm.setAcceptCookie(true);
-                  cm.setAcceptThirdPartyCookies(web, true);
-
-                  web.setWebViewClient(new WebViewClient() {
-                      @Override
-                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
-                          return handleUrl(req.getUrl());
-                      }
-
-                      @Override
-                      public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                          if (req.isForMainFrame()) showOffline();
-                      }
-                  });
-
-                  web.setWebChromeClient(new WebChromeClient() {
-                      @Override
-                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                          WebView popup = new WebView(MainActivity.this);
-                          popup.setWebViewClient(new WebViewClient() {
-                              boolean done = false;
-                              private void go(WebView w, Uri uri) {
-                                  if (done || uri == null) return;
-                                  String sc = uri.getScheme();
-                                  if (sc == null || "about".equals(sc)) return;
-                                  done = true;
-                                  if (isAppUrl(uri)) web.loadUrl(uri.toString());
-                                  else openExternal(uri);
-                                  w.stopLoading();
-                                  w.destroy();
-                              }
-                              @Override
-                              public boolean shouldOverrideUrlLoading(WebView w, WebResourceRequest req) {
-                                  go(w, req.getUrl());
-                                  return true;
-                              }
-                              @Override
-                              public void onPageStarted(WebView w, String url, Bitmap favicon) {
-                                  go(w, Uri.parse(url));
-                              }
-                          });
-                          WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                          transport.setWebView(popup);
-                          resultMsg.sendToTarget();
-                          return true;
-                      }
-
-                      @Override
-                      public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
-                          if (fileCallback != null) fileCallback.onReceiveValue(null);
-                          fileCallback = cb;
-                          try {
-                              startActivityForResult(params.createIntent(), FILE_REQ);
-                          } catch (ActivityNotFoundException e) {
-                              fileCallback = null;
-                              return false;
-                          }
-                          return true;
-                      }
-                  });
-
-                  if (state != null) web.restoreState(state);
-                  else web.loadUrl(APP_URL);
-              }
-
-              private boolean isAppUrl(Uri uri) {
-                  String host = uri.getHost();
-                  if (host == null) return false;
-                  return host.endsWith("script.google.com") || host.endsWith("googleusercontent.com")
-                      || host.endsWith("accounts.google.com") || host.endsWith("gstatic.com");
-              }
-
-              private boolean handleUrl(Uri uri) {
-                  String sc = uri.getScheme();
-                  if (("http".equals(sc) || "https".equals(sc)) && isAppUrl(uri)) return false;
-                  openExternal(uri);
-                  return true;
-              }
-
-              private void openExternal(Uri uri) {
-                  try {
-                      Intent i;
-                      if ("intent".equals(uri.getScheme())) i = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
-                      else i = new Intent(Intent.ACTION_VIEW, uri);
-                      i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                      startActivity(i);
-                  } catch (Exception e) {
-                      Toast.makeText(this, "Tidak bisa membuka: " + uri, Toast.LENGTH_SHORT).show();
-                  }
-              }
-
-              private void showOffline() {
-                  String html = "<html><body style='margin:0;background:#05070D;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center'>"
-                      + "<div><div style='font-size:48px'>📡</div><h2>Tidak ada koneksi</h2><p style='color:#94a3b8'>Periksa internet lalu coba lagi.</p>"
-                      + "<a href='" + APP_URL + "' style='display:inline-block;margin-top:12px;padding:12px 22px;border-radius:12px;background:#EA580C;color:#fff;text-decoration:none;font-weight:bold'>Coba lagi</a></div></body></html>";
-                  web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
-              }
-
-              @Override
-              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-                  if (requestCode == FILE_REQ) {
-                      if (fileCallback != null) {
-                          fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
-                          fileCallback = null;
-                      }
-                      return;
-                  }
-                  super.onActivityResult(requestCode, resultCode, data);
-              }
-
-              @Override
-              protected void onSaveInstanceState(Bundle out) {
-                  super.onSaveInstanceState(out);
-                  web.saveState(out);
-              }
-
-              @Override
-              public void onBackPressed() {
-                  if (web.canGoBack()) web.goBack();
-                  else super.onBackPressed();
-              }
-          }
-          EOF
-
-      - name: Build APK
-        run: gradle assembleRelease --no-daemon
-
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk RESERVASI-168HOUSE.apk
-
-      - name: Upload APK (artifact)
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: RESERVASI-168HOUSE-APK
-          path: RESERVASI-168HOUSE.apk
+          name: reservasi-apk
+          path: reservasi-app.apk
 
-      - name: Publish ke Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0-build${{ github.run_number }}
-          name: RESERVASI 168HOUSE APK (build ${{ github.run_number }})
-          body: APK aplikasi RESERVASI 168HOUSE. Download file RESERVASI-168HOUSE.apk lalu install di HP Android.
-          files: RESERVASI-168HOUSE.apk
+      - name: Terbitkan di halaman Releases (link download tetap)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest reservasi-app.apk --title "APK terbaru" --notes "Build otomatis dari commit ${{ github.sha }}"
