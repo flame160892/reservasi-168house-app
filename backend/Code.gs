@@ -47,11 +47,13 @@ const PRIVATE_KEYS = ['fonnte_token', 'admin_pass_hash'];
 const EDITABLE_SHEETS = ['Outlets', 'Events', 'Promos', 'Prices'];
 const TZ = Session.getScriptTimeZone() || 'Asia/Makassar';
 const FOLDER_NAME = 'Reservasi App - Gambar';
+// ID Google Sheet (opsional; wajib jika script tidak terikat ke Sheet)
+const SHEET_ID = '1_5TZVvomYnp8B8nSoRnXCl6sc_vs_HjCDRr9X99uoBo';
 
 /* ===================== SETUP ===================== */
 
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   PropertiesService.getScriptProperties().setProperty('SHEET_ID', ss.getId());
 
   Object.keys(SHEETS).forEach(function (name) {
@@ -372,7 +374,7 @@ function testNotifikasi() {
 /* ===================== DATA HELPERS ===================== */
 
 function ss_() {
-  const id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  const id = SHEET_ID || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
 }
 
