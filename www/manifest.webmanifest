@@ -1,6 +1,6 @@
 {
-  "name": "168HOUSE Reservasi",
-  "short_name": "168HOUSE",
+  "name": "WEON Reservasi",
+  "short_name": "WEON",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

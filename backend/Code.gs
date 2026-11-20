@@ -27,7 +27,7 @@ const SHEETS = {
 };
 
 const DEFAULT_SETTINGS = {
-  app_name: '168HOUSE',
+  app_name: 'WEON',
   tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
   logo_url: '',
   bg_url: '',
@@ -84,7 +84,7 @@ function setup() {
 }
 
 function seedSample_() {
-  const o1 = upsert_('Outlets', { name: '168HOUSE PALU', city: 'Palu', address: 'Isi alamat outlet di sini', hours: '21:00 - 03:00', phone: '', photo: '', sort: '1', active: 'TRUE' });
+  const o1 = upsert_('Outlets', { name: 'WEON PALU', city: 'Palu', address: 'Isi alamat outlet di sini', hours: '21:00 - 03:00', phone: '', photo: '', sort: '1', active: 'TRUE' });
   const o2 = upsert_('Outlets', { name: 'OUTLET CONTOH 2', city: 'Makassar', address: 'Contoh alamat', hours: '20:00 - 02:00', phone: '', photo: '', sort: '2', active: 'TRUE' });
   upsert_('Prices', { outlet_id: o1.id, category: 'Meja Reguler', item: 'Meja Reguler (4 orang)', price: '500000', min_pax: '4', desc: 'Minimum spend', active: 'TRUE' });
   upsert_('Prices', { outlet_id: o1.id, category: 'Sofa', item: 'Sofa Premium', price: '1500000', min_pax: '6', desc: 'Termasuk 1 botol', active: 'TRUE' });

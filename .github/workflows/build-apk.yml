@@ -1,4 +1,4 @@
-name: Build APK RESERVASI 168HOUSE
+name: Build APK RESERVASI WEON
 
 on:
   push:
@@ -35,23 +35,23 @@ jobs:
       - name: Sinkronkan web ke Android
         run: npx cap sync android
 
-      - name: Build APK RESERVASI 168HOUSE
+      - name: Build APK RESERVASI WEON
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Ganti nama APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk "reservasi-app.apk"
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk "weon-reservasi.apk"
 
       - uses: actions/upload-artifact@v4
         with:
           name: reservasi-apk
-          path: reservasi-app.apk
+          path: weon-reservasi.apk
 
       - name: Terbitkan di halaman Releases (link download tetap)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest -y --cleanup-tag || true
-          gh release create latest reservasi-app.apk --title "APK terbaru" --notes "Build otomatis dari commit ${{ github.sha }}"
+          gh release create latest weon-reservasi.apk --title "APK WEON terbaru" --notes "Build otomatis dari commit ${{ github.sha }}"

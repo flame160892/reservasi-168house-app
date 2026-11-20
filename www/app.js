@@ -108,7 +108,7 @@ function applyTheme(s) {
 
 /* ---------------- state ---------------- */
 const DEFAULTS = {
-  app_name: '168HOUSE', tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
+  app_name: 'WEON', tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
   logo_url: '', bg_url: '', theme: 'gold', admin_wa: '', instagram: '', about: ''
 };
 const tokSaved = store.get('admin_tok', null);
@@ -149,8 +149,8 @@ const Mock = {
       settings: Object.assign({}, DEFAULTS, { admin_email: '', fonnte_token: '', notify_customer: 'FALSE' }),
       pass: 'admin123',
       outlets: [
-        { id: o1, name: '168HOUSE PALU', city: 'Palu', address: 'Jl. Contoh No. 168, Palu', hours: '21:00 - 03:00', phone: '', photo: '', sort: '1', active: 'TRUE' },
-        { id: o2, name: '168 LOUNGE & BAR', city: 'Palu', address: 'Jl. Contoh No. 2, Palu', hours: '19:00 - 02:00', phone: '', photo: '', sort: '2', active: 'TRUE' },
+        { id: o1, name: 'WEON PALU', city: 'Palu', address: 'Jl. Contoh No. 168, Palu', hours: '21:00 - 03:00', phone: '', photo: '', sort: '1', active: 'TRUE' },
+        { id: o2, name: 'WEON LOUNGE & BAR', city: 'Palu', address: 'Jl. Contoh No. 2, Palu', hours: '19:00 - 02:00', phone: '', photo: '', sort: '2', active: 'TRUE' },
         { id: o3, name: 'OUTLET CONTOH MAKASSAR', city: 'Makassar', address: 'Jl. Contoh, Makassar', hours: '21:00 - 03:00', phone: '', photo: '', sort: '3', active: 'TRUE' }
       ],
       prices: [
@@ -964,7 +964,7 @@ function iosHint() {
   if (!ios || standalone || store.get('ios_hint_off', false)) return;
   const d = document.createElement('div');
   d.className = 'ios-hint';
-  d.innerHTML = `<div><b>Pasang aplikasi di iPhone</b><br>Ketuk <span class="share">⬆︎</span> <b>Bagikan</b> di Safari, lalu pilih <b>"Tambahkan ke Layar Utama"</b>.</div><button aria-label="Tutup">✕</button>`;
+  d.innerHTML = `<div><b>Pasang aplikasi WEON di iPhone</b><br>Ketuk <span class="share">⬆︎</span> <b>Bagikan</b> di Safari, lalu pilih <b>"Tambahkan ke Layar Utama"</b>.</div><button aria-label="Tutup">✕</button>`;
   d.querySelector('button').onclick = () => { store.set('ios_hint_off', true); d.remove(); };
   document.body.appendChild(d);
 }

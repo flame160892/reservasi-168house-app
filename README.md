@@ -1,4 +1,4 @@
-# Aplikasi Reservasi Venue (Google Sheet + APK Android)
+# Reservasi WEON (Google Sheet + APK Android)
 
 Aplikasi reservasi meja/event bergaya aplikasi nightlife: halaman pembuka, Beranda (banner promo, menu, acara),
 RSVP (daftar outlet + reservasi), Member QR, Acara & Promo, Profil, plus **Panel Admin** di dalam aplikasi.
@@ -39,8 +39,8 @@ Jika `API_URL` kosong, aplikasi berjalan di **MODE DEMO** (data contoh, tidak ma
 2. Upload **semua isi folder ini** (termasuk folder tersembunyi `.github`). Cara mudah: *Add file → Upload files*, drag semua.
    Jika folder `.github` tidak ikut, buat file baru bernama `.github/workflows/build-apk.yml` lalu tempel isinya.
 3. Buka tab **Actions** → workflow **Build APK** berjalan otomatis (±5–8 menit).
-4. Setelah selesai (✅), unduh APK di **Releases → APK terbaru → reservasi-app.apk**
-   (link tetap: `https://github.com/flame160892/reservasi-168house-app/releases/download/latest/reservasi-app.apk`).
+4. Setelah selesai (✅), unduh APK di **Releases → APK terbaru → weon-reservasi.apk**
+   (link tetap: `https://github.com/flame160892/reservasi-168house-app/releases/download/latest/weon-reservasi.apk`).
 5. Pindahkan ke HP Android → install (izinkan "Instal dari sumber tidak dikenal").
 
 Ganti nama di bawah ikon HP: ubah `appName` di `capacitor.config.json`. Ganti ikon: timpa `resources/icon.png` (1024×1024).
@@ -82,6 +82,6 @@ Cara pasang di iPhone:
 1. Buka link di atas dengan **Safari**.
 2. Ketuk tombol **Bagikan** (kotak dengan panah ke atas).
 3. Pilih **"Tambahkan ke Layar Utama"** → **Tambah**.
-Ikon 168HOUSE muncul di layar utama dan aplikasi terbuka layar penuh seperti aplikasi biasa.
+Ikon WEON muncul di layar utama dan aplikasi terbuka layar penuh seperti aplikasi biasa.
 
 Link yang sama juga bisa dibuka di browser HP Android / laptop, atau dibagikan ke pelanggan (misal di bio Instagram).
