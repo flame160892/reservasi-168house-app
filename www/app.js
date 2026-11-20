@@ -947,6 +947,18 @@ function setupBackButton() {
   });
 }
 
+/* iOS: petunjuk "Tambahkan ke Layar Utama" */
+function iosHint() {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (!ios || standalone || store.get('ios_hint_off', false)) return;
+  const d = document.createElement('div');
+  d.className = 'ios-hint';
+  d.innerHTML = `<div><b>Pasang aplikasi di iPhone</b><br>Ketuk <span class="share">⬆︎</span> <b>Bagikan</b> di Safari, lalu pilih <b>"Tambahkan ke Layar Utama"</b>.</div><button aria-label="Tutup">✕</button>`;
+  d.querySelector('button').onclick = () => { store.set('ios_hint_off', true); d.remove(); };
+  document.body.appendChild(d);
+}
+
 /* =================== START =================== */
 function start() {
   const cache = store.get('cache_all', null);
@@ -956,6 +968,7 @@ function start() {
   loadAll(!!cache);
   loadMy();
   setupBackButton();
+  setTimeout(iosHint, 1500);
 }
 start();
 })();
