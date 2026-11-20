@@ -31,6 +31,7 @@ const cssUrl = u => `url("${String(u).replace(/["\\\n\r]/g, '')}")`;
 const hashCode = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
 const phBg = t => { const h = hashCode(t) % 360; return `linear-gradient(135deg,hsl(${h} 70% 38%),hsl(${(h + 70) % 360} 80% 14%))`; };
 const bgStyle = (url, t) => url ? `background-image:${cssUrl(url)}` : `background-image:${phBg(t || 'x')}`;
+const isEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').trim());
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const uid = p => p + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 
@@ -187,6 +188,7 @@ const Mock = {
       }
       case 'register': {
         const ph = normWa(p.phone); if (ph.length < 9) throw new Error('Nomor WhatsApp tidak valid');
+        if (!isEmail(p.email)) throw new Error('Email wajib diisi dengan benar');
         let m = d.members.find(x => x.phone === ph);
         if (m) Object.assign(m, { name: p.name || m.name, email: p.email || m.email });
         else { m = { phone: ph, name: p.name, email: p.email || '', created: new Date().toISOString(), visits: '0' }; d.members.push(m); }
@@ -199,6 +201,7 @@ const Mock = {
       case 'createReservation': {
         const r = p.reservation; const ph = normWa(r.phone);
         if (!r.name || ph.length < 9 || !r.outlet_id || !r.date) throw new Error('Lengkapi data reservasi');
+        if (!isEmail(r.email)) throw new Error('Email wajib diisi');
         const o = d.outlets.find(x => x.id === r.outlet_id); const pr = d.prices.find(x => x.id === r.price_id);
         const rec = { id: 'R' + todayStr().slice(2).replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(), created: new Date().toISOString().replace('T', ' ').slice(0, 19), name: r.name, phone: ph, email: r.email || '', outlet_id: r.outlet_id, outlet_name: o ? o.name : '', date: r.date, time: r.time, pax: String(r.pax), price_id: r.price_id || '', package: pr ? pr.item : '', price: pr ? pr.price : '', notes: r.notes || '', status: 'Menunggu', admin_note: '' };
         d.reservations.push(rec);
@@ -353,7 +356,8 @@ function vLogin() {
     <div class="phone"><span>🇮🇩 +62</span><input name="phone" inputmode="tel" placeholder="8123xxxxx" required value="${esc(String(u.phone || '').replace(/^62/, ''))}"></div>
     <p class="hint">Masukkan nomor WhatsApp aktif — konfirmasi reservasi dikirim ke nomor ini.</p>
     <label class="lb">Nama lengkap</label><input name="name" required placeholder="Nama Anda" value="${esc(u.name || '')}">
-    <label class="lb">Email (opsional)</label><input name="email" type="email" placeholder="nama@email.com" value="${esc(u.email || '')}">
+    <label class="lb">Email <span style="color:var(--primary)">*wajib</span></label><input name="email" type="email" required autocomplete="email" placeholder="nama@email.com" value="${esc(u.email || '')}">
+    <p class="hint">Email digunakan untuk akun member & bukti reservasi.</p>
     <div class="spacer"></div>
     <button class="btn btn-primary btn-block">Masuk</button>
   </form>`;
@@ -393,7 +397,7 @@ function vHome() {
     </div>
     <div class="pad">
       ${S.user ? `<div class="prompt"><div class="member-mini"><div class="avatar">${esc((S.user.name || '?')[0].toUpperCase())}</div><div><b>Halo, ${esc(S.user.name)}</b><div class="muted" style="font-size:13px">Siap untuk malam ini? Pesan meja sekarang.</div></div></div><button class="btn btn-primary btn-sm" data-act="tab" data-tab="rsvp">Reservasi</button></div>`
-        : `<div class="prompt"><p>Masuk atau daftar untuk reservasi lebih cepat & lihat riwayat reservasi Anda</p><button class="btn btn-primary" data-act="goLogin">Masuk/Daftar</button></div>`}
+        : `<div class="prompt"><p>Daftar dengan email untuk bisa reservasi & lihat riwayat reservasi Anda</p><button class="btn btn-primary" data-act="goLogin">Masuk/Daftar</button></div>`}
       <div class="menu-grid">${menu.map(m => `<button class="mi" data-act="menu" data-k="${m[0]}"><span class="ic">${ic(m[1])}</span>${m[2]}</button>`).join('')}</div>
       <div class="sec-h"><h2>Acara</h2><button data-act="seeAll" data-k="events">Lihat semua</button></div>
       ${ev.length ? `<div class="hs">${ev.map(posterCard).join('')}</div>` : '<div class="empty">Belum ada acara</div>'}
@@ -510,10 +514,16 @@ function openPriceList() {
 }
 function openResForm(outletId, pre = {}) {
   const o = S.outlets.find(x => String(x.id) === String(outletId)); if (!o) return;
+  if (!S.user || !isEmail(S.user.email)) {
+    toast(S.user ? 'Lengkapi email Anda dulu untuk reservasi' : 'Daftar / masuk dengan email dulu untuk reservasi', 3500);
+    if (S.user) return openEditProfile();
+    closeModal(); S.screen = 'login'; render(); window.scrollTo(0, 0); return;
+  }
   const u = S.user || {};
   const pr = S.prices.filter(p => String(p.outlet_id) === String(o.id));
   openModal('Reservasi — ' + o.name, `<form id="resForm" class="pad">
     <input type="hidden" name="outlet_id" value="${esc(o.id)}">
+    <input type="hidden" name="email" value="${esc(u.email || '')}">
     <label class="lb">Nama</label><input name="name" required value="${esc(u.name || '')}">
     <label class="lb">No. WhatsApp</label><input name="phone" required inputmode="tel" placeholder="08xxxxxxxxxx" value="${u.phone ? '0' + esc(String(u.phone).replace(/^62/, '')) : ''}">
     <div class="row"><div><label class="lb">Tanggal</label><input type="date" name="date" required min="${todayStr()}" value="${esc(pre.date || todayStr())}"></div>
@@ -535,7 +545,6 @@ async function submitReservation(form) {
   try {
     const res = await api('createReservation', { reservation: r });
     const rec = res.reservation;
-    if (!S.user) { S.user = { name: r.name, phone: normWa(r.phone), email: '' }; store.set('user', S.user); S.guest = false; store.set('guest', false); }
     showResSuccess(rec, res.admin_wa || S.settings.admin_wa);
     loadMy();
   } catch (e) { handleErr(e); } finally { busy(false); }
@@ -599,7 +608,7 @@ function openEditProfile() {
   openModal('Profil Saya', `<form id="profileForm" class="pad">
     <label class="lb">Nama</label><input name="name" required value="${esc(u.name || '')}">
     <label class="lb">No. WhatsApp</label><input name="phone" required inputmode="tel" value="0${esc(String(u.phone || '').replace(/^62/, ''))}">
-    <label class="lb">Email</label><input name="email" type="email" value="${esc(u.email || '')}">
+    <label class="lb">Email <span style="color:var(--primary)">*wajib</span></label><input name="email" type="email" required value="${esc(u.email || '')}">
     <div class="spacer"></div><button class="btn btn-primary btn-block">Simpan</button></form>`);
 }
 
@@ -895,6 +904,7 @@ document.addEventListener('submit', async ev => {
     if (f.id === 'loginForm' || f.id === 'profileForm') {
       const o = formObj(f); const phone = normWa(o.phone);
       if (phone.length < 9) return toast('Nomor WhatsApp tidak valid');
+      if (!isEmail(o.email)) return toast('Masukkan email yang valid');
       busy(true);
       const r = await api('register', { name: o.name, phone, email: o.email });
       S.user = { name: r.member.name, phone: normWa(r.member.phone), email: r.member.email || '' };

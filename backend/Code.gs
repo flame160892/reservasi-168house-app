@@ -172,6 +172,7 @@ function register_(p) {
   const phone = normWa_(p.phone);
   if (!phone || phone.length < 9) throw new Error('Nomor WhatsApp tidak valid');
   if (!p.name) throw new Error('Nama wajib diisi');
+  if (!isEmail_(p.email)) throw new Error('Email wajib diisi dengan benar');
   const ex = rows_('Members').filter(function (m) { return normWa_(m.phone) === phone; })[0];
   const m = ex
     ? upsert_('Members', { phone: ex.phone, name: p.name || ex.name, email: p.email || ex.email })
@@ -196,6 +197,7 @@ function createReservation_(p) {
   if (!r.name) throw new Error('Nama wajib diisi');
   const phone = normWa_(r.phone);
   if (!phone || phone.length < 9) throw new Error('Nomor WhatsApp tidak valid');
+  if (!isEmail_(r.email)) throw new Error('Email wajib diisi. Silakan daftar dengan email.');
   if (!r.outlet_id) throw new Error('Pilih outlet');
   if (!r.date) throw new Error('Pilih tanggal');
   const outlet = rows_('Outlets').filter(function (o) { return String(o.id) === String(r.outlet_id); })[0];
@@ -218,6 +220,7 @@ function createReservation_(p) {
 
   const s = getSettings_(true);
   try { notifyAdmin_(rec, s, outlet); } catch (e) { Logger.log('Notif gagal: ' + e); }
+  try { emailCustomer_(rec, s, 'Reservasi diterima — menunggu konfirmasi'); } catch (e) { Logger.log('Email tamu gagal: ' + e); }
   return { reservation: rec, admin_wa: normWa_(s.admin_wa) };
 }
 
@@ -292,6 +295,9 @@ function updateReservation_(p) {
     if (m) upsert_('Members', { phone: m.phone, visits: String((Number(m.visits) || 0) + 1) });
   }
   const s = getSettings_(true);
+  if (p.status && p.status !== cur.status && rec.email) {
+    try { emailCustomer_(rec, s, 'Status reservasi: ' + rec.status); } catch (e) { Logger.log(e); }
+  }
   if (p.status && p.status !== cur.status && isTrue_(s.notify_customer) && s.fonnte_token) {
     try {
       sendWa_(s.fonnte_token, rec.phone,
@@ -352,6 +358,21 @@ function notifyAdmin_(r, s, outlet) {
       .filter(function (v, i, a) { return v && a.indexOf(v) === i; });
     if (targets.length) sendWa_(s.fonnte_token, targets.join(','), msg);
   }
+}
+
+/** Email ke tamu: bukti reservasi & perubahan status */
+function emailCustomer_(r, s, title) {
+  if (!isEmail_(r.email)) return;
+  const row = function (k, v) { return '<tr><td style="padding:6px 12px 6px 0;color:#777">' + k + '</td><td style="padding:6px 0"><b>' + v + '</b></td></tr>'; };
+  const html = '<div style="font-family:Arial,sans-serif;font-size:14px;max-width:520px">' +
+    '<h2 style="margin:0 0 4px">' + s.app_name + '</h2><p style="margin:0 0 16px;color:#555">' + title + '</p>' +
+    '<table style="border-collapse:collapse">' +
+    row('Kode', r.id) + row('Nama', r.name) + row('Outlet', r.outlet_name) +
+    row('Tanggal', r.date + (r.time ? ' jam ' + r.time : '')) + row('Jumlah', r.pax + ' orang') +
+    row('Paket', (r.package || '-') + (r.price ? ' (Rp' + Number(r.price).toLocaleString('id-ID') + ')' : '')) +
+    row('Status', r.status) + (r.admin_note ? row('Catatan', r.admin_note) : '') + '</table>' +
+    '<p style="color:#777;margin-top:18px">Tunjukkan kode reservasi ini saat datang. Terima kasih!</p></div>';
+  MailApp.sendEmail({ to: r.email, subject: s.app_name + ' — ' + title + ' (' + r.id + ')', name: s.app_name, htmlBody: html });
 }
 
 /** Kirim WA otomatis lewat Fonnte (https://fonnte.com) — butuh token */
@@ -478,6 +499,7 @@ function folder_() {
   return f;
 }
 
+function isEmail_(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').trim()); }
 function isTrue_(v) { return v === true || String(v).toUpperCase() === 'TRUE'; }
 function isActive_(r) { return !(r.active === false || String(r.active).toUpperCase() === 'FALSE'); }
 function bySort_(a, b) { return (Number(a.sort) || 999) - (Number(b.sort) || 999); }
