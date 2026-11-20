@@ -395,3 +395,28 @@ body.editing .ed-zone{outline:1.5px dashed color-mix(in srgb,var(--primary) 45%,
 .icon-pick label:has(input:checked){border-color:var(--primary);color:var(--primary);background:var(--soft)}
 .icon-pick small{font-size:10.5px;line-height:1.2}
 @media(min-width:1000px){.ed-fab{bottom:24px}}
+
+/* ---------- ulasan berjalan ---------- */
+.reviews2{margin-top:34px}
+.rv-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:-4px 0 16px}
+.rv-score{display:flex;align-items:baseline;gap:8px}
+.rv-score b{font-family:var(--display);font-size:30px}
+.rv-score small{color:var(--muted)}
+.marquee{overflow:hidden;padding:8px 0 18px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.marquee-track{display:flex;gap:16px;width:max-content;animation:marquee 40s linear infinite;padding-left:16px}
+.marquee:hover .marquee-track,.marquee:active .marquee-track{animation-play-state:paused}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.marquee-track{animation:none}.marquee{overflow-x:auto}}
+.rv-card{position:relative;margin:0;width:300px;flex:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.rv-card .stars span{color:var(--line)}
+.rv-card blockquote{margin:0;font-style:italic;line-height:1.55;font-size:14px;flex:1;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.rv-card figcaption{display:flex;align-items:center;gap:10px}
+.rv-card .rv-ph{width:42px;height:42px;font-size:18px;border-width:2px}
+.rv-card figcaption b{display:block;font-size:14px}
+.rv-card figcaption small{display:block;color:var(--muted);font-size:12px}
+.rv-grid{display:flex;gap:16px;flex-wrap:wrap;padding:8px 20px 18px}
+.rate-pick{display:inline-flex;flex-direction:row-reverse;gap:4px}
+.rate-pick input{position:absolute;opacity:0;pointer-events:none}
+.rate-pick label{font-size:34px;color:var(--line);cursor:pointer;line-height:1}
+.rate-pick input:checked~label,.rate-pick label:hover,.rate-pick label:hover~label{color:#E8A93B}
+@media(min-width:700px){.rv-card{width:340px}.rv-grid{padding:8px 32px 18px}}

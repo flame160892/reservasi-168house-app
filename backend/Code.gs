@@ -24,7 +24,7 @@ const SHEETS = {
   Reservations: ['id', 'created', 'name', 'phone', 'email', 'outlet_id', 'outlet_name', 'date', 'time',
                  'pax', 'price_id', 'package', 'price', 'notes', 'status', 'admin_note', 'updated'],
   Members:      ['phone', 'name', 'email', 'created', 'visits'],
-  Reviews:      ['id', 'name', 'text', 'rating', 'photo', 'active'],
+  Reviews:      ['id', 'name', 'text', 'rating', 'photo', 'active', 'phone', 'email', 'created'],
   Subscribers:  ['email', 'created'],
   Features:     ['id', 'group', 'icon', 'title', 'subtitle', 'sort', 'active']
 };
@@ -140,6 +140,7 @@ const PUBLIC_ACTIONS = {
   myData: myData_,
   createReservation: createReservation_,
   subscribe: subscribe_,
+  submitReview: submitReview_,
   adminLogin: adminLogin_
 };
 
@@ -185,9 +186,29 @@ function getAll_() {
     events: rows_('Events').filter(isActive_),
     promos: rows_('Promos').filter(isActive_),
     prices: rows_('Prices').filter(isActive_),
-    reviews: rows_('Reviews').filter(isActive_),
+    reviews: rows_('Reviews').filter(isActive_).map(function (r) { return { id: r.id, name: r.name, text: r.text, rating: r.rating, photo: r.photo, created: String(r.created || '').slice(0, 10) }; }),
     features: rows_('Features').filter(isActive_)
   };
+}
+
+function submitReview_(p) {
+  const r = p.review || {};
+  const name = String(r.name || '').trim().slice(0, 40);
+  const text = String(r.text || '').trim().slice(0, 400);
+  const rating = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 5)));
+  if (!name) throw new Error('Nama wajib diisi');
+  if (text.length < 10) throw new Error('Ulasan minimal 10 karakter');
+  if (!isEmail_(p.email)) throw new Error('Masuk dengan email dulu untuk menulis ulasan');
+  const rec = upsert_('Reviews', { name: name, text: text, rating: String(rating), photo: '', active: 'FALSE',
+    phone: normWa_(p.phone), email: String(p.email).trim(), created: now_() });
+  const s = getSettings_(true);
+  if (s.admin_email) {
+    try {
+      MailApp.sendEmail({ to: s.admin_email, name: s.app_name, subject: 'Ulasan baru menunggu persetujuan — ' + name,
+        htmlBody: '<p><b>' + name + '</b> (' + rating + '★)</p><p><i>' + text.replace(/</g, '&lt;') + '</i></p><p>Setujui di aplikasi: Admin → Ulasan → edit → centang "Tampilkan".</p>' });
+    } catch (e) { Logger.log(e); }
+  }
+  return { id: rec.id };
 }
 
 function subscribe_(p) {
@@ -445,6 +466,10 @@ function sheet_(name) {
       const rows = DEFAULT_FEATURES.map(function (f, i) { return ['FEA-' + rand_(6), f[0], f[1], f[2], f[3], String(i % 4 + 1), 'TRUE']; });
       sh.getRange(2, 1, rows.length, h.length).setValues(rows);
     }
+  } else if (SHEETS[name] && sh.getLastColumn() < SHEETS[name].length) {
+    const h2 = SHEETS[name];
+    sh.getRange(1, 1, 1, h2.length).setValues([h2]).setFontWeight('bold').setBackground('#1e1e1e').setFontColor('#F5C542');
+    sh.getRange(1, 1, sh.getMaxRows(), h2.length).setNumberFormat('@');
   }
   return sh;
 }

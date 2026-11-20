@@ -215,6 +215,7 @@ const Mock = {
         const s = Object.assign({}, d.settings); delete s.fonnte_token;
         return ok({ settings: s, outlets: d.outlets.filter(r => isActive(r.active)).sort((x, y) => (+x.sort || 999) - (+y.sort || 999)), events: d.events.filter(r => isActive(r.active)), promos: d.promos.filter(r => isActive(r.active)), prices: d.prices.filter(r => isActive(r.active)), reviews: d.reviews.filter(r => isActive(r.active)), features: d.features.filter(r => isActive(r.active)) });
       }
+      case 'submitReview': { const rv = p.review || {}; if (!rv.name || String(rv.text || '').length < 10) throw new Error('Ulasan minimal 10 karakter'); d.reviews.push({ id: uid('REV'), name: rv.name, text: rv.text, rating: String(rv.rating || 5), photo: '', active: 'FALSE', phone: normWa(p.phone), created: todayStr() }); this.save(d); return ok(); }
       case 'subscribe': { if (!isEmail(p.email)) throw new Error('Email tidak valid'); if (!d.subscribers.find(x => x.email === p.email)) d.subscribers.push({ email: p.email, created: new Date().toISOString() }); this.save(d); return ok(); }
       case 'register': {
         const ph = normWa(p.phone); if (ph.length < 9) throw new Error('Nomor WhatsApp tidak valid');
@@ -347,7 +348,9 @@ async function loadAll(silent) {
   try {
     const r = await api('getAll');
     store.set('cache_all', r); applyData(r);
-    if (S.screen !== 'admin' && !modalOpen()) render();
+    const ae = document.activeElement;
+    const typing = ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName);
+    if ((S.screen === 'main' || S.screen === 'welcome') && !modalOpen() && !typing) { const y = window.scrollY; render(); window.scrollTo(0, y); }
   } catch (e) { if (!silent) toast('Gagal memuat data: ' + e.message, 4000); }
 }
 async function loadMy() {
@@ -442,6 +445,33 @@ function dCard(x, act, img, sub, sheet) {
     <span class="dcard-img" style="${bgStyle(img, x.title)}">${img ? '' : `<span class="ph-title">${esc(x.title)}</span>`}</span>
     <span class="dcard-b"><span><b>${esc(x.title)}</b><small>${esc(sub || '')}</small></span><span class="go">${ic('arrow')}</span></span></button></div>`;
 }
+function rvCard(r) {
+  const n = Math.max(1, Math.min(5, Number(r.rating) || 5));
+  return `<figure class="rv-card">${edItem('Reviews', r.id)}
+    <div class="stars">${'★'.repeat(n)}<span>${'★'.repeat(5 - n)}</span></div>
+    <blockquote>“${esc(r.text)}”</blockquote>
+    <figcaption><span class="rv-ph" style="${r.photo ? `background-image:${cssUrl(r.photo)}` : ''}">${r.photo ? '' : esc((r.name || '?')[0].toUpperCase())}</span>
+      <span><b>${esc(r.name)}</b><small>${r.created ? esc(fmtDate(r.created)) : 'Tamu ' + esc(S.settings.app_name)}</small></span></figcaption></figure>`;
+}
+function vReviews() {
+  const s = S.settings; const rv = S.reviews || [];
+  let track = '';
+  if (rv.length) {
+    if (ED()) track = `<div class="rv-grid">${rv.map(rvCard).join('')}</div>`;
+    else {
+      let base = rv.slice(); while (base.length < 6) base = base.concat(rv);
+      const dur = Math.max(25, base.length * 7);
+      track = `<div class="marquee" aria-label="Ulasan tamu"><div class="marquee-track" style="animation-duration:${dur}s">${base.map(rvCard).join('')}${base.map(rvCard).join('').replace(/<figure class="rv-card">/g, '<figure class="rv-card" aria-hidden="true">')}</div></div>`;
+    }
+  }
+  const avg = rv.length ? (rv.reduce((a, r) => a + (Number(r.rating) || 5), 0) / rv.length) : 0;
+  return `<section class="sec reviews2 ed-zone">${edText('sec_reviews', 'Judul')}
+    <div class="pad">${secHead(s.sec_reviews || DEFAULTS.sec_reviews)}
+      <div class="rv-top">${rv.length ? `<div class="rv-score"><b>${avg.toFixed(1)}</b><span class="stars">★★★★★</span><small>${rv.length} ulasan</small></div>` : '<p class="muted" style="margin:0">Belum ada ulasan. Jadilah yang pertama!</p>'}
+        <button class="btn btn-outline btn-sm" data-act="writeReview">${ic('edit')} Tulis Ulasan</button>${ED() ? edAdd('Reviews', 'Tambah Ulasan') : ''}</div>
+      ${ED() ? '<p class="hint">Ulasan dari tamu masuk dalam keadaan tersembunyi. Buka Admin → Ulasan, edit, lalu centang "Tampilkan" untuk menyetujui.</p>' : ''}
+    </div>${track}</section>`;
+}
 function vHome() {
   const s = S.settings;
   const promos = validPromos();
@@ -451,7 +481,6 @@ function vHome() {
   const outletPhoto = (S.outlets.find(o => o.photo) || {}).photo || s.bg_url || '';
   const feats = featList('hero');
   const band = featList('band');
-  const rv = S.reviews; const r = rv.length ? rv[S.revIdx % rv.length] : null;
   return `<section class="hero2">
       <div class="hero2-tx ed-zone">${edText('hero_eyebrow,hero_title,hero_accent,tagline', 'Edit judul')}
         <div class="eyebrow">${esc(s.hero_eyebrow || DEFAULTS.hero_eyebrow)}</div>
@@ -477,19 +506,11 @@ function vHome() {
         <button class="btn btn-primary" data-act="${s.about ? 'about' : 'menu'}" data-k="outlets">${s.about ? 'Tentang Kami' : 'Lihat Outlet'} ${ic('arrow')}</button></div>
     </section>
     ${band.length || ED() ? `<section class="pad"><div class="band" style="--n:${Math.max(1, Math.min(band.length, 4))}">${band.map(b => `<div class="ed-zone">${edItem('Features', b.id)}<span>${ic(b.icon)}</span><b>${esc(b.title)}</b><small>${esc(b.subtitle || '')}</small></div>`).join('')}${ED() ? `<div class="band-add">${edAdd('Features', 'Tambah', 'data-group="band"')}</div>` : ''}</div></section>` : ''}
-    <section class="split pad">
-      <div class="sec ed-zone">${edText('sec_promos', 'Judul')}${secHead(s.sec_promos || DEFAULTS.sec_promos, 'promos', 'Lihat Semua')}
-        ${ED() ? `<div class="ed-bar">${edAdd('Promos', 'Tambah Promo')}</div>` : ''}
-        ${promos.length ? `<div class="drow drow-sm">${promos.map(p => dCard(p, 'promo', p.image, p.valid_until ? 's/d ' + fmtDate(p.valid_until) : outletName(p.outlet_id), 'Promos')).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}</div>
-      ${r || ED() ? `<div class="sec ed-zone">${edText('sec_reviews', 'Judul')}${secHead(s.sec_reviews || DEFAULTS.sec_reviews)}
-        ${ED() ? `<div class="ed-bar">${edAdd('Reviews', 'Tambah Ulasan')}${r ? edItem('Reviews', r.id) : ''}</div>` : ''}
-        ${r ? `
-        <div class="review"><button class="rv-nav" data-act="rev" data-d="-1" aria-label="Sebelumnya">${ic('back')}</button>
-          <div class="rv-in"><div class="rv-ph" style="${r.photo ? `background-image:${cssUrl(r.photo)}` : ''}">${r.photo ? '' : esc((r.name || '?')[0])}</div>
-            <div><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, Number(r.rating) || 5)))}</div><p>“${esc(r.text)}”</p><b>${esc(r.name)}</b></div></div>
-          <button class="rv-nav" data-act="rev" data-d="1" aria-label="Berikutnya">${ic('chev')}</button></div>
-        ${rv.length > 1 ? `<div class="rv-dots">${rv.map((_, i) => `<i class="${i === S.revIdx % rv.length ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : '<div class="empty">Belum ada ulasan</div>'}</div>` : ''}
+    <section class="sec pad ed-zone">${edText('sec_promos', 'Judul')}${secHead(s.sec_promos || DEFAULTS.sec_promos, 'promos', 'Lihat Semua')}
+      ${ED() ? `<div class="ed-bar">${edAdd('Promos', 'Tambah Promo')}</div>` : ''}
+      ${promos.length ? `<div class="drow">${promos.map(p => dCard(p, 'promo', p.image, p.valid_until ? 's/d ' + fmtDate(p.valid_until) : outletName(p.outlet_id), 'Promos')).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}
     </section>
+    ${vReviews()}
     <section class="pad ed-zone">${edText('news_title,news_accent,news_text', 'Edit teks')}<form class="news" id="newsForm">
       <h2 class="display">${esc(s.news_title || DEFAULTS.news_title)}<br><em>${esc(s.news_accent || DEFAULTS.news_accent)}</em></h2>
       <p>${esc(s.news_text || DEFAULTS.news_text)}</p>
@@ -711,10 +732,10 @@ const SCHEMA = {
       { k: 'icon', l: 'Ikon', t: 'icon', req: 1 }, { k: 'title', l: 'Judul', req: 1 }, { k: 'subtitle', l: 'Keterangan (khusus pita cokelat)' },
       { k: 'sort', l: 'Urutan', t: 'number' }, { k: 'active', l: 'Tampilkan', t: 'bool' }] },
   Reviews: { key: 'reviews', label: 'Ulasan', title: 'name', img: 'photo',
-    sub: r => `${'★'.repeat(Number(r.rating) || 5)} — ${String(r.text || '').slice(0, 60)}`,
+    sub: r => `${isActive(r.active) ? '' : '⏳ MENUNGGU PERSETUJUAN • '}${'★'.repeat(Number(r.rating) || 5)} — ${String(r.text || '').slice(0, 60)}${r.phone ? ' • +' + r.phone : ''}`,
     fields: [{ k: 'name', l: 'Nama tamu', req: 1 }, { k: 'text', l: 'Isi ulasan (dari tamu asli)', t: 'textarea', req: 1 },
       { k: 'rating', l: 'Rating (1-5)', t: 'number' }, { k: 'photo', l: 'Foto (opsional, izin tamu)', t: 'image', max: 400 },
-      { k: 'active', l: 'Tampilkan di beranda', t: 'bool' }] },
+      { k: 'active', l: 'Tampilkan di beranda (setujui)', t: 'bool' }] },
   Events: { key: 'events', label: 'Event', title: 'title', img: 'poster',
     sub: r => `${fmtDate(r.date)} ${r.time || ''} • ${outletName(r.outlet_id)}`,
     fields: [{ k: 'title', l: 'Judul event', req: 1 }, { k: 'date', l: 'Tanggal', t: 'date' }, { k: 'time', l: 'Jam mulai', t: 'time' },
@@ -934,6 +955,15 @@ const actions = {
   edAdd(el) { S.preGroup = el.dataset.group || null; openItemEditor(el.dataset.sheet, null); },
   edDel(el) { actions.delItem(el); },
   edText(el) { openTextEditor(el.dataset.keys); },
+  writeReview() {
+    if (!S.user || !isEmail(S.user.email)) { toast('Masuk / daftar dulu untuk menulis ulasan', 3000); S.screen = 'login'; render(); window.scrollTo(0, 0); return; }
+    openModal('Tulis Ulasan', `<form id="reviewForm" class="pad">
+      <p class="hint">Bagikan pengalaman Anda di ${esc(S.settings.app_name)}. Ulasan akan tampil setelah disetujui admin.</p>
+      <label class="lb">Rating</label><div class="rate-pick">${[5, 4, 3, 2, 1].map(n => `<input type="radio" name="rating" id="rt${n}" value="${n}" ${n === 5 ? 'checked' : ''}><label for="rt${n}" title="${n} bintang">★</label>`).join('')}</div>
+      <label class="lb">Nama yang ditampilkan</label><input name="name" required maxlength="40" value="${esc(S.user.name || '')}">
+      <label class="lb">Ulasan Anda</label><textarea name="text" required minlength="10" maxlength="400" rows="4" placeholder="Ceritakan pengalaman Anda…"></textarea>
+      <div class="spacer"></div><button class="btn btn-primary btn-block">Kirim Ulasan</button></form>`);
+  },
   rev(el) { const n = S.reviews.length; if (!n) return; S.revIdx = (S.revIdx + Number(el.dataset.d) + n) % n; const y = window.scrollY; render(); window.scrollTo(0, y); },
   seeAll(el) { S.seg = el.dataset.k; actions.tab({ dataset: { tab: 'events' } }); },
   seg(el) { S.seg = el.dataset.seg; render(); },
@@ -1049,6 +1079,11 @@ document.addEventListener('submit', async ev => {
       render(); toast('Selamat datang, ' + S.user.name); loadMy();
     }
     else if (fid === 'resForm') await submitReservation(f);
+    else if (fid === 'reviewForm') {
+      const o = formObj(f); busy(true, 'Mengirim ulasan…');
+      await api('submitReview', { review: { name: o.name, text: o.text, rating: o.rating }, phone: S.user.phone, email: S.user.email });
+      closeModal(); toast('Terima kasih! Ulasan Anda akan tampil setelah disetujui admin.', 4000);
+    }
     else if (fid === 'newsForm') {
       const em = formObj(f).email; if (!isEmail(em)) return toast('Email tidak valid');
       busy(true, 'Mendaftarkan…'); await api('subscribe', { email: em }); f.reset(); toast('Terima kasih! Info promo akan dikirim ke ' + em, 3500);
