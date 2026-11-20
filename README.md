@@ -73,3 +73,15 @@ Setiap reservasi yang ditandai **Selesai** menambah 1 kunjungan: Basic (0) → S
 
 ## Versi web (opsional)
 Folder `www/` juga bisa di-hosting sebagai website (Vercel, Netlify, GitHub Pages) — tanpa perubahan kode.
+
+## iPhone / iPad (iOS)
+Versi iOS berupa Web App (PWA) yang otomatis dipublikasikan ke GitHub Pages setiap ada perubahan:
+**https://flame160892.github.io/reservasi-168house-app/**
+
+Cara pasang di iPhone:
+1. Buka link di atas dengan **Safari**.
+2. Ketuk tombol **Bagikan** (kotak dengan panah ke atas).
+3. Pilih **"Tambahkan ke Layar Utama"** → **Tambah**.
+Ikon 168HOUSE muncul di layar utama dan aplikasi terbuka layar penuh seperti aplikasi biasa.
+
+Link yang sama juga bisa dibuka di browser HP Android / laptop, atau dibagikan ke pelanggan (misal di bio Instagram).
