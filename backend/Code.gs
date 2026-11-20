@@ -25,7 +25,8 @@ const SHEETS = {
                  'pax', 'price_id', 'package', 'price', 'notes', 'status', 'admin_note', 'updated'],
   Members:      ['phone', 'name', 'email', 'created', 'visits'],
   Reviews:      ['id', 'name', 'text', 'rating', 'photo', 'active'],
-  Subscribers:  ['email', 'created']
+  Subscribers:  ['email', 'created'],
+  Features:     ['id', 'group', 'icon', 'title', 'subtitle', 'sort', 'active']
 };
 
 const DEFAULT_SETTINGS = {
@@ -46,11 +47,23 @@ const DEFAULT_SETTINGS = {
   hero_eyebrow: 'PREMIUM NIGHTLIFE EXPERIENCE',
   hero_title: 'Lebih Dari Sekadar',
   hero_accent: 'Hiburan Malam',
-  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife'
+  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife',
+  sec_events: 'Acara Pilihan',
+  sec_promos: 'Promo Spesial',
+  sec_reviews: 'Kata Tamu Kami',
+  news_title: 'Dapatkan Info',
+  news_accent: 'Promo Terbaru!',
+  news_text: 'Daftarkan email untuk penawaran spesial, event terbaru & promo kami.'
 };
 
+const DEFAULT_FEATURES = [
+  ['hero', 'sofa', 'Meja & VIP', ''], ['hero', 'music', 'Live DJ', ''], ['hero', 'gift', 'Promo Spesial', ''], ['hero', 'star', 'Member Rewards', ''],
+  ['band', 'cal', 'Reservasi', 'Mudah & Cepat'], ['band', 'music', 'Musik & DJ', 'Setiap Malam'],
+  ['band', 'heart', 'Pelayanan', 'Ramah & Profesional'], ['band', 'people', 'Tempat Nyaman', 'Untuk Bersantai']
+];
+
 const PRIVATE_KEYS = ['fonnte_token', 'admin_pass_hash'];
-const EDITABLE_SHEETS = ['Outlets', 'Events', 'Promos', 'Prices', 'Reviews'];
+const EDITABLE_SHEETS = ['Outlets', 'Events', 'Promos', 'Prices', 'Reviews', 'Features'];
 const TZ = Session.getScriptTimeZone() || 'Asia/Makassar';
 const FOLDER_NAME = 'Reservasi App - Gambar';
 // ID Google Sheet (opsional; wajib jika script tidak terikat ke Sheet)
@@ -172,7 +185,8 @@ function getAll_() {
     events: rows_('Events').filter(isActive_),
     promos: rows_('Promos').filter(isActive_),
     prices: rows_('Prices').filter(isActive_),
-    reviews: rows_('Reviews').filter(isActive_)
+    reviews: rows_('Reviews').filter(isActive_),
+    features: rows_('Features').filter(isActive_)
   };
 }
 
@@ -266,6 +280,7 @@ function adminData_() {
     promos: rows_('Promos'),
     prices: rows_('Prices'),
     reviews: rows_('Reviews'),
+    features: rows_('Features'),
     subscribers: rows_('Subscribers').length,
     reservations: rows_('Reservations')
       .sort(function (a, b) { return String(b.created).localeCompare(String(a.created)); })
@@ -426,6 +441,10 @@ function sheet_(name) {
     sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold').setBackground('#1e1e1e').setFontColor('#F5C542');
     sh.setFrozenRows(1);
     sh.getRange(1, 1, sh.getMaxRows(), h.length).setNumberFormat('@');
+    if (name === 'Features') {
+      const rows = DEFAULT_FEATURES.map(function (f, i) { return ['FEA-' + rand_(6), f[0], f[1], f[2], f[3], String(i % 4 + 1), 'TRUE']; });
+      sh.getRange(2, 1, rows.length, h.length).setValues(rows);
+    }
   }
   return sh;
 }

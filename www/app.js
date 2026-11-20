@@ -122,12 +122,25 @@ const DEFAULTS = {
   app_name: 'WEON', tagline: 'Nikmati pengalaman nightlife terbaik dan reservasi meja dengan mudah.',
   logo_url: '', bg_url: '', theme: 'latte', admin_wa: '', instagram: '', about: '',
   hero_eyebrow: 'PREMIUM NIGHTLIFE EXPERIENCE', hero_title: 'Lebih Dari Sekadar', hero_accent: 'Hiburan Malam',
-  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife'
+  about_title: 'Tempat Modern untuk Pecinta Musik & Nightlife',
+  sec_events: 'Acara Pilihan', sec_promos: 'Promo Spesial', sec_reviews: 'Kata Tamu Kami',
+  news_title: 'Dapatkan Info', news_accent: 'Promo Terbaru!', news_text: 'Daftarkan email untuk penawaran spesial, event terbaru & promo kami.'
 };
+const DEFAULT_FEATURES = [
+  { id: 'FEA-H1', group: 'hero', icon: 'sofa', title: 'Meja & VIP', subtitle: '', sort: '1', active: 'TRUE' },
+  { id: 'FEA-H2', group: 'hero', icon: 'music', title: 'Live DJ', subtitle: '', sort: '2', active: 'TRUE' },
+  { id: 'FEA-H3', group: 'hero', icon: 'gift', title: 'Promo Spesial', subtitle: '', sort: '3', active: 'TRUE' },
+  { id: 'FEA-H4', group: 'hero', icon: 'star', title: 'Member Rewards', subtitle: '', sort: '4', active: 'TRUE' },
+  { id: 'FEA-B1', group: 'band', icon: 'cal', title: 'Reservasi', subtitle: 'Mudah & Cepat', sort: '1', active: 'TRUE' },
+  { id: 'FEA-B2', group: 'band', icon: 'music', title: 'Musik & DJ', subtitle: 'Setiap Malam', sort: '2', active: 'TRUE' },
+  { id: 'FEA-B3', group: 'band', icon: 'heart', title: 'Pelayanan', subtitle: 'Ramah & Profesional', sort: '3', active: 'TRUE' },
+  { id: 'FEA-B4', group: 'band', icon: 'people', title: 'Tempat Nyaman', subtitle: 'Untuk Bersantai', sort: '4', active: 'TRUE' }
+];
+const ICON_CHOICES = [['sofa', 'Sofa / Meja'], ['music', 'Musik'], ['gift', 'Hadiah'], ['star', 'Bintang'], ['cal', 'Kalender'], ['heart', 'Hati'], ['people', 'Orang'], ['tag', 'Label promo'], ['money', 'Uang'], ['chat', 'Chat'], ['store', 'Toko / Outlet'], ['bottle', 'Botol'], ['clock', 'Jam'], ['pin', 'Lokasi'], ['qr', 'QR'], ['shield', 'Perisai'], ['leaf', 'Daun'], ['phone', 'Telepon']];
 const tokSaved = store.get('admin_tok', null);
 const S = {
   screen: 'welcome', tab: 'home', seg: 'events',
-  settings: Object.assign({}, DEFAULTS), outlets: [], events: [], promos: [], prices: [], reviews: [], revIdx: 0,
+  settings: Object.assign({}, DEFAULTS), outlets: [], events: [], promos: [], prices: [], reviews: [], features: null, revIdx: 0, edit: false,
   user: store.get('user', null), guest: store.get('guest', false), my: null,
   city: '', q: '',
   adminToken: tokSaved && tokSaved.exp > Date.now() ? tokSaved.t : null,
@@ -183,6 +196,7 @@ const Mock = {
         { id: 'PRO-1', title: 'Buy 2 Get 1 Bottle', image: '', desc: 'Berlaku setiap Kamis.', valid_until: '', outlet_id: o1, active: 'TRUE' },
         { id: 'PRO-2', title: 'Happy Hour 50%', image: '', desc: 'Jam 19:00 - 21:00.', valid_until: '', outlet_id: o2, active: 'TRUE' }
       ],
+      features: DEFAULT_FEATURES.map(x => Object.assign({}, x)),
       reviews: [{ id: 'REV-1', name: 'Contoh Ulasan', text: 'Ulasan tamu akan tampil di sini — tambahkan ulasan asli dari Admin > Ulasan.', rating: '5', photo: '', active: 'TRUE' }],
       reservations: [], members: [], subscribers: []
     };
@@ -194,12 +208,12 @@ const Mock = {
     const d = this.db(); const ok = o => Object.assign({ ok: true }, o || {});
     const adminOnly = ['adminData', 'saveSettings', 'saveItem', 'deleteItem', 'updateReservation', 'uploadImage', 'changePassword'];
     if (adminOnly.includes(a) && p.token !== 'demo-token') throw new Error('AUTH: Sesi admin habis');
-    const tbl = s => ({ Outlets: 'outlets', Events: 'events', Promos: 'promos', Prices: 'prices', Reviews: 'reviews' }[s]);
-    d.reviews = d.reviews || []; d.subscribers = d.subscribers || [];
+    const tbl = s => ({ Outlets: 'outlets', Events: 'events', Promos: 'promos', Prices: 'prices', Reviews: 'reviews', Features: 'features' }[s]);
+    d.reviews = d.reviews || []; d.subscribers = d.subscribers || []; if (!d.features) d.features = DEFAULT_FEATURES.map(x => Object.assign({}, x));
     switch (a) {
       case 'getAll': {
         const s = Object.assign({}, d.settings); delete s.fonnte_token;
-        return ok({ settings: s, outlets: d.outlets.filter(r => isActive(r.active)).sort((x, y) => (+x.sort || 999) - (+y.sort || 999)), events: d.events.filter(r => isActive(r.active)), promos: d.promos.filter(r => isActive(r.active)), prices: d.prices.filter(r => isActive(r.active)), reviews: d.reviews.filter(r => isActive(r.active)) });
+        return ok({ settings: s, outlets: d.outlets.filter(r => isActive(r.active)).sort((x, y) => (+x.sort || 999) - (+y.sort || 999)), events: d.events.filter(r => isActive(r.active)), promos: d.promos.filter(r => isActive(r.active)), prices: d.prices.filter(r => isActive(r.active)), reviews: d.reviews.filter(r => isActive(r.active)), features: d.features.filter(r => isActive(r.active)) });
       }
       case 'subscribe': { if (!isEmail(p.email)) throw new Error('Email tidak valid'); if (!d.subscribers.find(x => x.email === p.email)) d.subscribers.push({ email: p.email, created: new Date().toISOString() }); this.save(d); return ok(); }
       case 'register': {
@@ -225,7 +239,7 @@ const Mock = {
         this.save(d); return ok({ reservation: rec, admin_wa: normWa(d.settings.admin_wa) });
       }
       case 'adminLogin': if (p.password !== d.pass) throw new Error('Password salah (demo: admin123)'); return ok({ token: 'demo-token' });
-      case 'adminData': return ok({ settings: Object.assign({}, d.settings), outlets: d.outlets, events: d.events, promos: d.promos, prices: d.prices, reviews: d.reviews, subscribers: d.subscribers.length, reservations: d.reservations.slice().sort((x, y) => y.created.localeCompare(x.created)), members: d.members.length });
+      case 'adminData': return ok({ settings: Object.assign({}, d.settings), outlets: d.outlets, events: d.events, promos: d.promos, prices: d.prices, reviews: d.reviews, features: d.features, subscribers: d.subscribers.length, reservations: d.reservations.slice().sort((x, y) => y.created.localeCompare(x.created)), members: d.members.length });
       case 'saveSettings': Object.assign(d.settings, p.settings); this.save(d); return ok({ settings: d.settings });
       case 'saveItem': {
         const t = d[tbl(p.sheet)]; const it = Object.assign({}, p.item);
@@ -325,7 +339,7 @@ function compressImage(file, max = 1280, q = 0.82) {
 /* ---------------- data loading ---------------- */
 function applyData(r) {
   S.settings = Object.assign({}, DEFAULTS, r.settings || {});
-  S.outlets = r.outlets || []; S.events = r.events || []; S.promos = r.promos || []; S.prices = r.prices || []; S.reviews = r.reviews || [];
+  S.outlets = r.outlets || []; S.events = r.events || []; S.promos = r.promos || []; S.prices = r.prices || []; S.reviews = r.reviews || []; S.features = Array.isArray(r.features) ? r.features : null;
   applyTheme(S.settings);
   document.title = S.settings.app_name || 'Reservasi';
 }
@@ -349,6 +363,9 @@ function render() {
   else if (S.screen === 'login') app.innerHTML = vLogin();
   else if (S.screen === 'admin') app.innerHTML = vAdmin();
   else { app.innerHTML = `${vHeader()}<div class="main tab-${S.tab}">${vTab()}${vFooter()}</div>${vNav()}`; if (S.tab === 'home') startSlides(); }
+  const fab = $('#edFab'); if (fab) fab.remove();
+  if (S.adminToken && S.screen === 'main') document.body.insertAdjacentHTML('beforeend', `<button id="edFab" class="ed-fab ${S.edit ? 'on' : ''}" data-act="toggleEdit">${ic(S.edit ? 'check' : 'edit')}<span>${S.edit ? 'Selesai Edit' : 'Mode Edit'}</span></button>`);
+  document.body.classList.toggle('editing', ED() && S.screen === 'main');
   if (DEMO && !$('.demo-bar')) document.body.insertAdjacentHTML('beforeend', '<div class="demo-bar">MODE DEMO</div>');
 }
 
@@ -411,13 +428,19 @@ function vFooter() {
   const s = S.settings;
   return `<footer class="ftr"><div><b>${esc(s.app_name)}</b> — ${esc(s.tagline)}</div><div class="muted">© ${new Date().getFullYear()} ${esc(s.app_name)}${s.instagram ? ' · @' + esc(String(s.instagram).replace('@', '')) : ''}</div></footer>`;
 }
+const featList = g => (S.features || DEFAULT_FEATURES).filter(f => f.group === g && isActive(f.active)).sort((a, b) => (+a.sort || 99) - (+b.sort || 99));
+const ED = () => S.edit && !!S.adminToken;
+const edBtn = (act, attrs, label, icon = 'edit') => `<button type="button" class="ed-btn" data-act="${act}" ${attrs}>${ic(icon)}${label ? '<span>' + label + '</span>' : ''}</button>`;
+const edItem = (sheet, id) => ED() ? `<span class="ed-tools">${edBtn('edItem', `data-sheet="${sheet}" data-id="${esc(id)}"`, '')}${edBtn('edDel', `data-sheet="${sheet}" data-id="${esc(id)}"`, '', 'trash')}</span>` : '';
+const edAdd = (sheet, label, extra = '') => ED() ? edBtn('edAdd', `data-sheet="${sheet}" ${extra}`, label, 'plus') : '';
+const edText = (keys, label = 'Edit teks') => ED() ? edBtn('edText', `data-keys="${keys}"`, label) : '';
 function secHead(title, k, label = 'Lihat Semua') {
   return `<div class="sh"><h2 class="display">${esc(title)}<i class="sh-line"></i></h2>${k ? `<button data-act="seeAll" data-k="${k}">${label} ${ic('arrow')}</button>` : ''}</div>`;
 }
-function dCard(x, act, img, sub) {
-  return `<button class="dcard" data-act="${act}" data-id="${esc(x.id)}">
+function dCard(x, act, img, sub, sheet) {
+  return `<div class="dwrap">${sheet ? edItem(sheet, x.id) : ''}<button class="dcard" data-act="${act}" data-id="${esc(x.id)}">
     <span class="dcard-img" style="${bgStyle(img, x.title)}">${img ? '' : `<span class="ph-title">${esc(x.title)}</span>`}</span>
-    <span class="dcard-b"><span><b>${esc(x.title)}</b><small>${esc(sub || '')}</small></span><span class="go">${ic('arrow')}</span></span></button>`;
+    <span class="dcard-b"><span><b>${esc(x.title)}</b><small>${esc(sub || '')}</small></span><span class="go">${ic('arrow')}</span></span></button></div>`;
 }
 function vHome() {
   const s = S.settings;
@@ -426,46 +449,50 @@ function vHome() {
   const slides = [s.bg_url, ...promos.map(p => p.image)].filter(Boolean);
   const heroImgs = slides.length ? slides : [''];
   const outletPhoto = (S.outlets.find(o => o.photo) || {}).photo || s.bg_url || '';
-  const feats = [['sofa', 'Meja & VIP'], ['music', 'Live DJ'], ['gift', 'Promo Spesial'], ['star', 'Member Rewards']];
-  const band = [['cal', 'Reservasi', 'Mudah & Cepat'], ['music', 'Musik & DJ', 'Setiap Malam'], ['heart', 'Pelayanan', 'Ramah & Profesional'], ['people', 'Tempat Nyaman', 'Untuk Bersantai']];
+  const feats = featList('hero');
+  const band = featList('band');
   const rv = S.reviews; const r = rv.length ? rv[S.revIdx % rv.length] : null;
   return `<section class="hero2">
-      <div class="hero2-tx">
+      <div class="hero2-tx ed-zone">${edText('hero_eyebrow,hero_title,hero_accent,tagline', 'Edit judul')}
         <div class="eyebrow">${esc(s.hero_eyebrow || DEFAULTS.hero_eyebrow)}</div>
         <h1 class="display hero2-h">${esc(s.hero_title || DEFAULTS.hero_title)}<br><em>${esc(s.hero_accent || DEFAULTS.hero_accent)}</em><span class="leaf">${ic('leaf')}</span></h1>
         <p class="lead">${esc(s.tagline)}</p>
         <div class="cta"><button class="btn btn-primary" data-act="tab" data-tab="rsvp">Reservasi Sekarang ${ic('arrow')}</button>
           <button class="btn btn-outline" data-act="menu" data-k="outlets">${ic('pin')} Cari Outlet</button></div>
-        <div class="feat4">${feats.map(f => `<div><span>${ic(f[0])}</span>${f[1]}</div>`).join('')}</div>
+        <div class="feat4">${feats.map(f => `<div class="ed-zone">${edItem('Features', f.id)}<span>${ic(f.icon)}</span>${esc(f.title)}</div>`).join('')}${edAdd('Features', 'Ikon', 'data-group="hero"')}</div>
       </div>
-      <div class="hero2-media">
+      <div class="hero2-media ed-zone">${ED() ? edBtn('edText', 'data-keys="bg_url"', 'Ganti gambar', 'img') : ''}
         <div class="slides" id="slides">${heroImgs.map(u => `<div class="slide" style="${u ? `background-image:${cssUrl(u)}` : `background-image:${phBg(s.app_name)}`}">${u ? '' : `<span class="hero-ph">${logoHtml()}</span>`}</div>`).join('')}</div>
         ${heroImgs.length > 1 ? `<div class="dots" id="dots">${heroImgs.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}
       </div>
     </section>
     ${S.user ? '' : `<div class="pad"><div class="prompt"><p>Daftar dengan email untuk bisa reservasi & lihat riwayat reservasi Anda</p><button class="btn btn-primary btn-sm" data-act="goLogin">Masuk/Daftar</button></div></div>`}
-    <section class="sec pad">${secHead('Acara Pilihan', 'events')}
-      ${ev.length ? `<div class="drow">${ev.map(e => dCard(e, 'event', e.poster, `${fmtDate(e.date)}${e.time ? ' • ' + e.time : ''}`)).join('')}</div>` : '<div class="empty">Belum ada acara</div>'}</section>
+    <section class="sec pad ed-zone">${edText('sec_events', 'Judul')}${secHead(s.sec_events || DEFAULTS.sec_events, 'events')}
+      ${ED() ? `<div class="ed-bar">${edAdd('Events', 'Tambah Event')}<small>Event yang tanggalnya sudah lewat otomatis tidak tampil.</small></div>` : ''}
+      ${ev.length ? `<div class="drow">${ev.map(e => dCard(e, 'event', e.poster, `${fmtDate(e.date)}${e.time ? ' • ' + e.time : ''}`, 'Events')).join('')}</div>` : '<div class="empty">Belum ada acara</div>'}</section>
     <section class="about2 pad">
       <div class="about2-img" style="${bgStyle(outletPhoto, s.app_name + 'x')}">${outletPhoto ? '' : `<span class="hero-ph">${logoHtml()}</span>`}</div>
-      <div class="about2-tx"><div class="eyebrow">${esc(s.app_name)}</div><h2 class="display">${esc(s.about_title || DEFAULTS.about_title)}</h2>
+      <div class="about2-tx ed-zone">${edText('about_title,about', 'Edit teks')}<div class="eyebrow">${esc(s.app_name)}</div><h2 class="display">${esc(s.about_title || DEFAULTS.about_title)}</h2>
         <p class="lead">${esc((s.about || s.tagline).slice(0, 220))}${(s.about || '').length > 220 ? '…' : ''}</p>
         <button class="btn btn-primary" data-act="${s.about ? 'about' : 'menu'}" data-k="outlets">${s.about ? 'Tentang Kami' : 'Lihat Outlet'} ${ic('arrow')}</button></div>
     </section>
-    <section class="pad"><div class="band">${band.map(b => `<div><span>${ic(b[0])}</span><b>${b[1]}</b><small>${b[2]}</small></div>`).join('')}</div></section>
+    ${band.length || ED() ? `<section class="pad"><div class="band" style="--n:${Math.max(1, Math.min(band.length, 4))}">${band.map(b => `<div class="ed-zone">${edItem('Features', b.id)}<span>${ic(b.icon)}</span><b>${esc(b.title)}</b><small>${esc(b.subtitle || '')}</small></div>`).join('')}${ED() ? `<div class="band-add">${edAdd('Features', 'Tambah', 'data-group="band"')}</div>` : ''}</div></section>` : ''}
     <section class="split pad">
-      <div class="sec">${secHead('Promo Spesial', 'promos', 'Lihat Semua')}
-        ${promos.length ? `<div class="drow drow-sm">${promos.map(p => dCard(p, 'promo', p.image, p.valid_until ? 's/d ' + fmtDate(p.valid_until) : outletName(p.outlet_id))).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}</div>
-      ${r ? `<div class="sec">${secHead('Kata Tamu Kami')}
+      <div class="sec ed-zone">${edText('sec_promos', 'Judul')}${secHead(s.sec_promos || DEFAULTS.sec_promos, 'promos', 'Lihat Semua')}
+        ${ED() ? `<div class="ed-bar">${edAdd('Promos', 'Tambah Promo')}</div>` : ''}
+        ${promos.length ? `<div class="drow drow-sm">${promos.map(p => dCard(p, 'promo', p.image, p.valid_until ? 's/d ' + fmtDate(p.valid_until) : outletName(p.outlet_id), 'Promos')).join('')}</div>` : '<div class="empty">Belum ada promo</div>'}</div>
+      ${r || ED() ? `<div class="sec ed-zone">${edText('sec_reviews', 'Judul')}${secHead(s.sec_reviews || DEFAULTS.sec_reviews)}
+        ${ED() ? `<div class="ed-bar">${edAdd('Reviews', 'Tambah Ulasan')}${r ? edItem('Reviews', r.id) : ''}</div>` : ''}
+        ${r ? `
         <div class="review"><button class="rv-nav" data-act="rev" data-d="-1" aria-label="Sebelumnya">${ic('back')}</button>
           <div class="rv-in"><div class="rv-ph" style="${r.photo ? `background-image:${cssUrl(r.photo)}` : ''}">${r.photo ? '' : esc((r.name || '?')[0])}</div>
             <div><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, Number(r.rating) || 5)))}</div><p>“${esc(r.text)}”</p><b>${esc(r.name)}</b></div></div>
           <button class="rv-nav" data-act="rev" data-d="1" aria-label="Berikutnya">${ic('chev')}</button></div>
-        ${rv.length > 1 ? `<div class="rv-dots">${rv.map((_, i) => `<i class="${i === S.revIdx % rv.length ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>` : ''}
+        ${rv.length > 1 ? `<div class="rv-dots">${rv.map((_, i) => `<i class="${i === S.revIdx % rv.length ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : '<div class="empty">Belum ada ulasan</div>'}</div>` : ''}
     </section>
-    <section class="pad"><form class="news" id="newsForm">
-      <h2 class="display">Dapatkan Info<br><em>Promo Terbaru!</em></h2>
-      <p>Daftarkan email untuk penawaran spesial, event terbaru & promo ${esc(s.app_name)}.</p>
+    <section class="pad ed-zone">${edText('news_title,news_accent,news_text', 'Edit teks')}<form class="news" id="newsForm">
+      <h2 class="display">${esc(s.news_title || DEFAULTS.news_title)}<br><em>${esc(s.news_accent || DEFAULTS.news_accent)}</em></h2>
+      <p>${esc(s.news_text || DEFAULTS.news_text)}</p>
       <div class="news-in"><input type="email" name="email" required placeholder="Masukkan email Anda" value="${esc(S.user && S.user.email || '')}"><button aria-label="Kirim">${ic('send')}</button></div>
     </form></section>`;
 }
@@ -497,9 +524,9 @@ function vRsvp() {
 function outletCards() {
   const q = S.q.toLowerCase();
   const list = S.outlets.filter(o => (!S.city || o.city === S.city) && (!q || `${o.name} ${o.address} ${o.city}`.toLowerCase().includes(q)));
-  if (!list.length) return '<div class="empty" style="grid-column:1/-1">Outlet tidak ditemukan</div>';
-  return list.map(o => `<button class="ocard" data-act="outlet" data-id="${esc(o.id)}" style="${o.photo ? `background-image:${cssUrl(o.photo)}` : `background-image:${phBg(o.name)}`}">
-    <div class="info"><h3>${esc(o.name)}</h3><p>${esc(o.city || '-')} &nbsp;•&nbsp; <span class="open">${esc(o.hours || 'Open')}</span></p></div></button>`).join('');
+  if (!list.length && !ED()) return '<div class="empty" style="grid-column:1/-1">Outlet tidak ditemukan</div>';
+  return (ED() ? `<button class="ocard ocard-add" data-act="edAdd" data-sheet="Outlets">${ic('plus')}<span>Tambah Outlet</span></button>` : '') + list.map(o => `<div class="dwrap">${edItem('Outlets', o.id)}<button class="ocard" data-act="outlet" data-id="${esc(o.id)}" style="${o.photo ? `background-image:${cssUrl(o.photo)}` : `background-image:${phBg(o.name)}`}">
+    <div class="info"><h3>${esc(o.name)}</h3><p>${esc(o.city || '-')} &nbsp;•&nbsp; <span class="open">${esc(o.hours || 'Open')}</span></p></div></button></div>`).join('');
 }
 
 function vQr() {
@@ -678,6 +705,11 @@ function openEditProfile() {
 
 /* =================== ADMIN =================== */
 const SCHEMA = {
+  Features: { key: 'features', label: 'Keunggulan', title: 'title', img: null,
+    sub: r => `${r.group === 'band' ? 'Pita cokelat' : 'Ikon di bawah judul'} • ikon: ${r.icon}${r.subtitle ? ' • ' + r.subtitle : ''}`,
+    fields: [{ k: 'group', l: 'Tampil di', t: 'select', opts: [['hero', 'Ikon di bawah judul beranda'], ['band', 'Pita cokelat (4 keunggulan)']], req: 1 },
+      { k: 'icon', l: 'Ikon', t: 'icon', req: 1 }, { k: 'title', l: 'Judul', req: 1 }, { k: 'subtitle', l: 'Keterangan (khusus pita cokelat)' },
+      { k: 'sort', l: 'Urutan', t: 'number' }, { k: 'active', l: 'Tampilkan', t: 'bool' }] },
   Reviews: { key: 'reviews', label: 'Ulasan', title: 'name', img: 'photo',
     sub: r => `${'★'.repeat(Number(r.rating) || 5)} — ${String(r.text || '').slice(0, 60)}`,
     fields: [{ k: 'name', l: 'Nama tamu', req: 1 }, { k: 'text', l: 'Isi ulasan (dari tamu asli)', t: 'textarea', req: 1 },
@@ -706,7 +738,7 @@ const SCHEMA = {
       { k: 'item', l: 'Nama item / meja / paket', req: 1 }, { k: 'price', l: 'Harga (Rp, angka saja)', t: 'number', req: 1 },
       { k: 'min_pax', l: 'Minimal orang', t: 'number' }, { k: 'desc', l: 'Keterangan', t: 'textarea' }, { k: 'active', l: 'Tampilkan di aplikasi', t: 'bool' }] }
 };
-const ADMIN_TABS = [['res', 'Reservasi'], ['Events', 'Event'], ['Promos', 'Promo'], ['Outlets', 'Outlet'], ['Prices', 'Harga'], ['Reviews', 'Ulasan'], ['look', 'Tampilan'], ['contact', 'Kontak & Notif'], ['sec', 'Keamanan']];
+const ADMIN_TABS = [['res', 'Reservasi'], ['Features', 'Keunggulan'], ['Events', 'Event'], ['Promos', 'Promo'], ['Outlets', 'Outlet'], ['Prices', 'Harga'], ['Reviews', 'Ulasan'], ['look', 'Tampilan'], ['contact', 'Kontak & Notif'], ['sec', 'Keamanan']];
 const STATUSES = ['Menunggu', 'Dikonfirmasi', 'Selesai', 'Ditolak', 'Batal'];
 
 function vAdmin() {
@@ -789,16 +821,36 @@ function fieldHtml(f, v) {
   switch (f.t) {
     case 'textarea': return `<label class="lb">${esc(f.l)}</label><textarea name="${f.k}" rows="4" ${req}>${esc(v)}</textarea>`;
     case 'bool': return `<label class="switch"><input type="checkbox" name="${f.k}" ${v === '' || isActive(v) ? 'checked' : ''}> ${esc(f.l)}</label>`;
-    case 'outlet': return `<label class="lb">${esc(f.l)}</label><select name="${f.k}" ${req}><option value="">— Pilih outlet —</option>${outlets.map(o => `<option value="${esc(o.id)}" ${String(o.id) === String(v) ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`;
+    case 'outlet': return `<label class="lb">${esc(f.l)}</label><select name="${f.k}" ${req}><option value="">— Pilih outlet —</option>${outlets.map(o => `<option value="${esc(o.id)}" ${String(o.id) === String(v) ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select><p class="hint">Ubah / tambah / hapus outlet: buka tab <b>Reservasi</b> dalam Mode Edit, atau Admin → Outlet.</p>`;
     case 'image': return imageField(f.k, f.l, v, f.max);
+    case 'select': return `<label class="lb">${esc(f.l)}</label><select name="${f.k}" ${req}>${f.opts.map(o => `<option value="${esc(o[0])}" ${String(v) === o[0] ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+    case 'icon': return `<label class="lb">${esc(f.l)}</label><div class="icon-pick">${ICON_CHOICES.map((o, i) => `<label title="${esc(o[1])}"><input type="radio" name="${f.k}" value="${o[0]}" ${String(v || 'star') === o[0] ? 'checked' : ''} ${req}>${ic(o[0])}<small>${esc(o[1])}</small></label>`).join('')}</div>`;
     case 'list': return `<label class="lb">${esc(f.l)}</label><input name="${f.k}" list="dl_${f.k}" value="${esc(v)}" ${req}><datalist id="dl_${f.k}">${f.opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
     default: return `<label class="lb">${esc(f.l)}</label><input type="${f.t || 'text'}" name="${f.k}" value="${esc(v)}" placeholder="${esc(f.ph || '')}" ${req} ${f.t === 'number' ? 'min="0" step="any"' : ''}>`;
   }
+}
+const TEXT_FIELDS = {
+  hero_eyebrow: ['Teks kecil di atas judul'], hero_title: ['Judul (baris 1)'], hero_accent: ['Kata miring berwarna'], tagline: ['Deskripsi singkat', 'textarea'],
+  about_title: ['Judul bagian Tentang'], about: ['Isi Tentang Kami', 'textarea'],
+  sec_events: ['Judul bagian Acara'], sec_promos: ['Judul bagian Promo'], sec_reviews: ['Judul bagian Ulasan'],
+  news_title: ['Judul langganan (baris 1)'], news_accent: ['Judul langganan (miring)'], news_text: ['Keterangan langganan', 'textarea']
+};
+function openTextEditor(keys) {
+  const s = Object.assign({}, DEFAULTS, S.settings);
+  if (keys === 'bg_url') {
+    return openModal('Gambar Utama', `<form id="setForm" class="pad">${imageField('bg_url', 'Gambar utama (banner beranda & halaman pembuka)', s.bg_url, 1800)}
+      <p class="hint">Kosongkan untuk memakai warna polos. Gambar promo juga ikut tampil bergantian di banner.</p>
+      <div class="spacer"></div><button class="btn btn-primary btn-block">Simpan</button></form>`);
+  }
+  openModal('Edit Teks', `<form id="setForm" class="pad">${keys.split(',').map(k => { const f = TEXT_FIELDS[k] || [k];
+    return f[1] === 'textarea' ? `<label class="lb">${esc(f[0])}</label><textarea name="${k}" rows="3">${esc(s[k] || '')}</textarea>` : `<label class="lb">${esc(f[0])}</label><input name="${k}" value="${esc(s[k] || '')}">`; }).join('')}
+    <div class="spacer"></div><button class="btn btn-primary btn-block">Simpan</button></form>`);
 }
 function openItemEditor(sheet, id) {
   const sc = SCHEMA[sheet];
   const item = id ? (S.admin.data[sc.key] || []).find(x => String(x.id) === String(id)) || {} : {};
   if (!id && sheet === 'Prices' && S.admin.priceOutlet) item.outlet_id = S.admin.priceOutlet;
+  if (!id && S.preGroup) { item.group = S.preGroup; S.preGroup = null; }
   openModal((id ? 'Edit ' : 'Tambah ') + sc.label, `<form id="itemForm" class="pad" data-sheet="${sheet}">
     <input type="hidden" name="id" value="${esc(item.id || '')}">
     ${sc.fields.map(f => fieldHtml(f, item[f.k])).join('')}
@@ -872,6 +924,16 @@ const actions = {
     if (k === 'outlets') return actions.tab({ dataset: { tab: 'rsvp' } });
     actions.tab({ dataset: { tab: k } });
   },
+  async toggleEdit() {
+    S.edit = !S.edit;
+    if (S.edit && !S.admin.data) { busy(true, 'Memuat data admin…'); await loadAdmin(); busy(false); if (!S.adminToken) { S.edit = false; return; } }
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+    toast(S.edit ? 'Mode Edit aktif — ketuk ✎ untuk ubah, 🗑 hapus, + tambah' : 'Mode Edit selesai', 3000);
+  },
+  edItem(el) { openItemEditor(el.dataset.sheet, el.dataset.id); },
+  edAdd(el) { S.preGroup = el.dataset.group || null; openItemEditor(el.dataset.sheet, null); },
+  edDel(el) { actions.delItem(el); },
+  edText(el) { openTextEditor(el.dataset.keys); },
   rev(el) { const n = S.reviews.length; if (!n) return; S.revIdx = (S.revIdx + Number(el.dataset.d) + n) % n; const y = window.scrollY; render(); window.scrollTo(0, y); },
   seeAll(el) { S.seg = el.dataset.k; actions.tab({ dataset: { tab: 'events' } }); },
   seg(el) { S.seg = el.dataset.seg; render(); },
@@ -893,7 +955,7 @@ const actions = {
   exitAdmin() { S.screen = S.user || S.guest ? 'main' : 'welcome'; S.tab = 'profile'; applyTheme(S.settings); render(); },
   adminRefresh() { S.admin.data = null; render(); loadAdmin(); },
   adminTab(el) { applyTheme(S.settings); S.admin.tab = el.dataset.t; render(); },
-  adminLogout() { S.adminToken = null; S.admin.data = null; store.del('admin_tok'); actions.exitAdmin(); },
+  adminLogout() { S.edit = false; S.adminToken = null; S.admin.data = null; store.del('admin_tok'); actions.exitAdmin(); },
   resFilter(el) { S.admin.filter = el.dataset.f; render(); },
   async resStatus(el) {
     const id = el.dataset.id, st = el.dataset.s;
@@ -916,7 +978,7 @@ const actions = {
   async delItem(el) {
     if (!(await ask('Hapus data ini?'))) return;
     busy(true, 'Menghapus…');
-    try { await api('deleteItem', { token: S.adminToken, sheet: el.dataset.sheet, id: el.dataset.id }); await loadAdmin(); loadAll(true); toast('Terhapus'); }
+    try { await api('deleteItem', { token: S.adminToken, sheet: el.dataset.sheet, id: el.dataset.id }); await loadAdmin(); await loadAll(true); toast('Terhapus'); }
     catch (e) { handleErr(e); } finally { busy(false); }
   },
   previewWelcome() {
@@ -972,10 +1034,10 @@ document.addEventListener('keydown', ev => {
 });
 
 document.addEventListener('submit', async ev => {
-  const f = ev.target; ev.preventDefault();
+  const f = ev.target; ev.preventDefault(); const fid = f.getAttribute('id');
   const btn = f.querySelector('button:not([type=button])'); if (btn) btn.disabled = true;
   try {
-    if (f.id === 'loginForm' || f.id === 'profileForm') {
+    if (fid === 'loginForm' || fid === 'profileForm') {
       const o = formObj(f); const phone = normWa(o.phone);
       if (phone.length < 9) return toast('Nomor WhatsApp tidak valid');
       if (!isEmail(o.email)) return toast('Masukkan email yang valid');
@@ -983,36 +1045,37 @@ document.addEventListener('submit', async ev => {
       const r = await api('register', { name: o.name, phone, email: o.email });
       S.user = { name: r.member.name, phone: normWa(r.member.phone), email: r.member.email || '' };
       store.set('user', S.user); S.guest = false; store.set('guest', false);
-      closeModal(); S.screen = 'main'; if (f.id === 'loginForm') S.tab = 'home';
+      closeModal(); S.screen = 'main'; if (fid === 'loginForm') S.tab = 'home';
       render(); toast('Selamat datang, ' + S.user.name); loadMy();
     }
-    else if (f.id === 'resForm') await submitReservation(f);
-    else if (f.id === 'newsForm') {
+    else if (fid === 'resForm') await submitReservation(f);
+    else if (fid === 'newsForm') {
       const em = formObj(f).email; if (!isEmail(em)) return toast('Email tidak valid');
       busy(true, 'Mendaftarkan…'); await api('subscribe', { email: em }); f.reset(); toast('Terima kasih! Info promo akan dikirim ke ' + em, 3500);
     }
-    else if (f.id === 'adminLoginForm') {
+    else if (fid === 'adminLoginForm') {
       busy(true, 'Masuk…');
       const r = await api('adminLogin', { password: formObj(f).password });
       S.adminToken = r.token; store.set('admin_tok', { t: r.token, exp: Date.now() + 5.5 * 3600e3 });
       render(); loadAdmin();
     }
-    else if (f.id === 'itemForm') {
+    else if (fid === 'itemForm') {
       busy(true, 'Menyimpan…');
       await api('saveItem', { token: S.adminToken, sheet: f.dataset.sheet, item: formObj(f) });
-      closeModal(); await loadAdmin(); loadAll(true); toast('Tersimpan');
+      closeModal(); await loadAdmin(); await loadAll(true); toast('Tersimpan');
     }
-    else if (f.id === 'lookForm' || f.id === 'contactForm') {
+    else if (fid === 'lookForm' || fid === 'contactForm' || fid === 'setForm') {
       busy(true, 'Menyimpan…');
-      const vals = f.id === 'lookForm' ? lookValues(f) : formObj(f);
+      const vals = fid === 'lookForm' ? lookValues(f) : formObj(f);
       const r = await api('saveSettings', { token: S.adminToken, settings: vals });
-      S.admin.data.settings = r.settings;
+      if (S.admin.data) S.admin.data.settings = r.settings;
       const pub = Object.assign({}, r.settings); delete pub.fonnte_token;
       S.settings = Object.assign({}, DEFAULTS, pub); applyTheme(S.settings);
       const c = store.get('cache_all', {}); c.settings = pub; store.set('cache_all', c);
-      render(); toast('Pengaturan tersimpan');
+      if (fid === 'setForm') closeModal();
+      const y = window.scrollY; render(); window.scrollTo(0, y); toast('Tersimpan');
     }
-    else if (f.id === 'passForm') {
+    else if (fid === 'passForm') {
       busy(true);
       const o = formObj(f); await api('changePassword', { token: S.adminToken, old: o.old, new: o.new });
       f.reset(); toast('Password diganti');
