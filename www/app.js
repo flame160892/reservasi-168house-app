@@ -27,7 +27,34 @@ const fmtDate = s => {
 };
 const isActive = v => !(v === false || String(v).toUpperCase() === 'FALSE' || v === '0');
 const normWa = p => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '62' + d.slice(1); else if (d.startsWith('8')) d = '62' + d; return d; };
-const cssUrl = u => `url("${String(u).replace(/["\\\n\r]/g, '')}")`;
+/* Gambar: ubah link Google Drive / Dropbox jadi link gambar langsung + cadangan jika gagal dimuat */
+const IMG_FAIL = {};
+function driveId(u) {
+  const m = String(u || '').match(/(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=|thumbnail\?(?:[^#]*&)?id=|[^#]*\/d\/)([\w-]{20,})/) || String(u || '').match(/googleusercontent\.com\/d\/([\w-]{20,})/);
+  return m ? m[1] : '';
+}
+function normImg(u) {
+  u = String(u || '').trim();
+  if (!u || u.startsWith('data:')) return u;
+  const id = driveId(u);
+  if (id) return IMG_FAIL[id] ? `https://drive.google.com/thumbnail?id=${id}&sz=w2000` : `https://lh3.googleusercontent.com/d/${id}`;
+  if (/dropbox\.com\//.test(u)) return u.replace(/[?&]dl=0/, '').replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  return u;
+}
+const cssUrl = u => `url('${normImg(u).replace(/['"\\\n\r<>]/g, encodeURIComponent)}')`;
+function fixImages(root = document) {
+  root.querySelectorAll('[style*="googleusercontent.com/d/"]').forEach(el => {
+    const m = el.style.backgroundImage.match(/googleusercontent\.com\/d\/([\w-]{20,})/); if (!m || IMG_FAIL[m[1]] === false) return;
+    const id = m[1], t = new Image();
+    t.onload = () => { IMG_FAIL[id] = false; };
+    t.onerror = () => { IMG_FAIL[id] = true; document.querySelectorAll(`[style*="${id}"]`).forEach(x => { x.style.backgroundImage = `url("https://drive.google.com/thumbnail?id=${id}&sz=w2000")`; }); };
+    t.src = `https://lh3.googleusercontent.com/d/${id}`;
+  });
+}
+window.imgErr = function (img) {
+  const id = driveId(img.src); if (!id || img.dataset.tried) return; img.dataset.tried = '1'; IMG_FAIL[id] = true;
+  img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+};
 const hashCode = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
 const phBg = t => { const h = hashCode(t); const a = 110 + h % 90, m = 55 + h % 30; return `linear-gradient(${a}deg,color-mix(in srgb,var(--primary) ${m}%,#f3d9b8),color-mix(in srgb,var(--primary) 70%,#1a0d05))`; };
 const bgStyle = (url, t) => url ? `background-image:${cssUrl(url)}` : `background-image:${phBg(t || 'x')}`;
@@ -278,6 +305,7 @@ function openModal(title, body, opts = {}) {
     <div class="sheet-h"><h3>${esc(title)}</h3><button class="icon-btn" data-act="closeModal" aria-label="Tutup">${ic('x')}</button></div>
     ${body}</div></div>`;
   document.body.style.overflow = 'hidden';
+  setTimeout(() => fixImages($('#modal')), 0);
   if (opts.onOpen) opts.onOpen();
 }
 function closeModal() { $('#modal').innerHTML = ''; document.body.style.overflow = ''; }
@@ -300,7 +328,7 @@ function openExternal(url) {
 function waLink(num, text) { return `https://wa.me/${normWa(num)}?text=${encodeURIComponent(text)}`; }
 function logoHtml(cls = '') {
   const s = S.settings;
-  return s.logo_url ? `<img class="logo-img ${cls}" src="${esc(s.logo_url)}" alt="${esc(s.app_name)}">` : `<span class="logo-txt ${cls}">${esc(s.app_name || 'LOGO')}</span>`;
+  return s.logo_url ? `<img class="logo-img ${cls}" src="${esc(normImg(s.logo_url))}" onerror="imgErr(this)" alt="${esc(s.app_name)}">` : `<span class="logo-txt ${cls}">${esc(s.app_name || 'LOGO')}</span>`;
 }
 const outletName = id => { const o = (S.admin.data ? S.admin.data.outlets : S.outlets).find(x => String(x.id) === String(id)) || S.outlets.find(x => String(x.id) === String(id)); return o ? o.name : '-'; };
 const upcomingEvents = () => S.events.filter(e => !e.date || String(e.date).slice(0, 10) >= todayStr()).sort((a, b) => String(a.date).localeCompare(String(b.date)));
@@ -369,6 +397,7 @@ function render() {
   const fab = $('#edFab'); if (fab) fab.remove();
   if (S.adminToken && S.screen === 'main') document.body.insertAdjacentHTML('beforeend', `<button id="edFab" class="ed-fab ${S.edit ? 'on' : ''}" data-act="toggleEdit">${ic(S.edit ? 'check' : 'edit')}<span>${S.edit ? 'Selesai Edit' : 'Mode Edit'}</span></button>`);
   document.body.classList.toggle('editing', ED() && S.screen === 'main');
+  setTimeout(fixImages, 0);
   if (DEMO && !$('.demo-bar')) document.body.insertAdjacentHTML('beforeend', '<div class="demo-bar">MODE DEMO</div>');
 }
 
@@ -420,7 +449,7 @@ function vHeader() {
   const s = S.settings;
   const lk = (k, label) => `<button class="${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${label}</button>`;
   return `<header class="hdr"><div class="hdr-in">
-    <button class="brand" data-act="tab" data-tab="home">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="brand-mark">${ic('leaf')}</span>`}
+    <button class="brand" data-act="tab" data-tab="home">${s.logo_url ? `<img src="${esc(normImg(s.logo_url))}" onerror="imgErr(this)" alt="">` : `<span class="brand-mark">${ic('leaf')}</span>`}
       <span class="brand-tx"><b>${esc(s.app_name)}</b><small>Reservasi</small></span></button>
     <nav class="hdr-nav">${lk('home', 'Beranda')}${lk('rsvp', 'Reservasi')}${lk('events', 'Acara & Promo')}<button data-act="menu" data-k="prices">Daftar Harga</button>${lk('profile', 'Profil')}<button data-act="contact">Kontak</button></nav>
     <div class="hdr-act">${S.user ? `<button class="hdr-av" data-act="tab" data-tab="profile" title="Profil">${esc((S.user.name || '?')[0].toUpperCase())}</button>` : `<button class="hdr-login" data-act="goLogin">Masuk</button>`}
@@ -833,7 +862,8 @@ function imageField(k, l, v, max) {
   return `<label class="lb">${esc(l)}</label><div class="imgf">
     <div class="imgf-prev" id="prev_${k}" style="${v ? `background-image:${cssUrl(v)}` : ''}">${v ? '' : ic('img')}</div>
     <div class="imgf-ctl"><label class="btn btn-ghost btn-sm">${ic('img')} Pilih gambar<input type="file" accept="image/*" hidden data-upload="${k}" data-max="${max || 1280}"></label>
-      <input name="${k}" value="${esc(v && String(v).startsWith('data:') ? v : (v || ''))}" placeholder="atau tempel URL gambar" data-urlfor="${k}"></div></div>`;
+      <input name="${k}" value="${esc(v && String(v).startsWith('data:') ? v : (v || ''))}" placeholder="atau tempel link gambar" data-urlfor="${k}"></div></div>
+    <p class="hint">Paling aman pakai tombol <b>Pilih gambar</b>. Link yang bisa ditempel: link gambar langsung (.jpg/.png) atau link Google Drive yang aksesnya "Siapa saja yang memiliki link". Link Instagram, Facebook & Google Photos tidak bisa.</p>`;
 }
 function fieldHtml(f, v) {
   v = v == null ? '' : v;
@@ -1032,7 +1062,7 @@ document.addEventListener('click', ev => {
 document.addEventListener('input', ev => {
   const t = ev.target;
   if (t.dataset.input === 'q') { S.q = t.value; const g = $('#outletGrid'); if (g) g.innerHTML = outletCards(); }
-  if (t.dataset.urlfor) { const p = $('#prev_' + t.dataset.urlfor); if (p) { p.style.backgroundImage = t.value ? cssUrl(t.value) : ''; p.innerHTML = t.value ? '' : ic('img'); } }
+  if (t.dataset.urlfor) { const p = $('#prev_' + t.dataset.urlfor); if (p) { p.style.backgroundImage = t.value ? cssUrl(t.value) : ''; p.innerHTML = t.value ? '' : ic('img'); fixImages(p.parentNode); } }
   const lf = t.closest && t.closest('#lookForm'); if (lf) applyTheme(Object.assign({}, S.settings, lookValues(lf)));
 });
 
@@ -1096,12 +1126,14 @@ document.addEventListener('submit', async ev => {
     }
     else if (fid === 'itemForm') {
       busy(true, 'Menyimpan…');
-      await api('saveItem', { token: S.adminToken, sheet: f.dataset.sheet, item: formObj(f) });
+      const it = formObj(f); ['poster', 'image', 'photo'].forEach(k => { if (it[k]) it[k] = normImg(it[k]); });
+      await api('saveItem', { token: S.adminToken, sheet: f.dataset.sheet, item: it });
       closeModal(); await loadAdmin(); await loadAll(true); toast('Tersimpan');
     }
     else if (fid === 'lookForm' || fid === 'contactForm' || fid === 'setForm') {
       busy(true, 'Menyimpan…');
       const vals = fid === 'lookForm' ? lookValues(f) : formObj(f);
+      ['logo_url', 'bg_url'].forEach(k => { if (vals[k]) vals[k] = normImg(vals[k]); });
       const r = await api('saveSettings', { token: S.adminToken, settings: vals });
       if (S.admin.data) S.admin.data.settings = r.settings;
       const pub = Object.assign({}, r.settings); delete pub.fonnte_token;
