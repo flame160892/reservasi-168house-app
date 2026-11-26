@@ -117,7 +117,7 @@ svg.i{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .feat4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;font-size:12.5px;font-weight:500;line-height:1.3}
 .feat4>div>span{display:flex;justify-content:center;margin-bottom:6px;color:var(--primary)}
 .feat4 svg{width:28px;height:28px;stroke-width:1.4}
-.hero2-media{position:relative;height:min(68vw,420px);margin:0;overflow:hidden;border-radius:0 0 0 70px}
+.hero2-media{position:relative;aspect-ratio:4/3;height:auto;margin:0;overflow:hidden;border-radius:0 0 0 70px}
 .hero2-media .slides{height:100%}
 .slides{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .slides::-webkit-scrollbar,.drow::-webkit-scrollbar,.tabs::-webkit-scrollbar,.hs::-webkit-scrollbar{display:none}
@@ -149,7 +149,7 @@ section.sec,.split{margin-top:30px}
 .dwrap>.dcard,.dwrap>.ocard{flex:1;width:100%}
 .dcard{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;text-align:left;scroll-snap-align:start;display:flex;flex-direction:column;border:1px solid var(--line);transition:transform .2s}
 .dcard:active{transform:translateY(2px)}
-.dcard-img{display:block;aspect-ratio:4/3.3;background:center/cover no-repeat;position:relative;margin:8px 8px 0;border-radius:calc(var(--r) - 6px);overflow:hidden}
+.dcard-img{display:block;aspect-ratio:4/3;background:center/cover no-repeat;position:relative;margin:8px 8px 0;border-radius:calc(var(--r) - 6px);overflow:hidden}
 .dcard-b{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 12px 14px}
 .dcard-b b{display:block;font-size:14px;line-height:1.3;font-weight:600}
 .dcard-b small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}
@@ -340,7 +340,7 @@ section.sec,.split{margin-top:30px}
   .band div+div{border-left:1px solid rgba(255,255,255,.18)}
   .about2{grid-template-columns:1.1fr 1fr;align-items:center;gap:36px}
   .news{grid-template-columns:1fr 1.2fr 1.4fr;align-items:center;padding:26px 34px}
-  .hero2-media{height:min(55vw,460px)}
+  .hero2-media{max-height:none}
 }
 /* ---------- desktop / web ---------- */
 @media(min-width:1000px){
@@ -351,7 +351,7 @@ section.sec,.split{margin-top:30px}
   #toast{bottom:30px}
   .hero2{flex-direction:row;align-items:stretch;min-height:520px;gap:0}
   .hero2-tx{flex:0 0 46%;padding:56px 24px 40px 32px;display:flex;flex-direction:column;justify-content:center}
-  .hero2-media{flex:1;height:auto;border-radius:0 0 0 160px;margin-right:0}
+  .hero2-media{flex:1;height:auto;aspect-ratio:4/3;align-self:center;border-radius:0 0 0 160px;margin-right:0}
   .hero2-h{font-size:clamp(52px,5.4vw,76px)}
   .feat4{max-width:460px}
   .drow>.dwrap{flex:0 1 calc(20% - 12px);max-width:none}
@@ -420,3 +420,9 @@ body.editing .ed-zone{outline:1.5px dashed color-mix(in srgb,var(--primary) 45%,
 .rate-pick label{font-size:34px;color:var(--line);cursor:pointer;line-height:1}
 .rate-pick input:checked~label,.rate-pick label:hover,.rate-pick label:hover~label{color:#E8A93B}
 @media(min-width:700px){.rv-card{width:340px}.rv-grid{padding:8px 32px 18px}}
+
+.dcard-img.r34{aspect-ratio:3/4}
+.dcard-img.r43{aspect-ratio:4/3}
+.lcard .img.wide{aspect-ratio:4/3}
+.sheet-img.r43{aspect-ratio:4/3}
+.about2-img{aspect-ratio:4/3}

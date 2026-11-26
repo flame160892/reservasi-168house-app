@@ -470,8 +470,9 @@ function secHead(title, k, label = 'Lihat Semua') {
   return `<div class="sh"><h2 class="display">${esc(title)}<i class="sh-line"></i></h2>${k ? `<button data-act="seeAll" data-k="${k}">${label} ${ic('arrow')}</button>` : ''}</div>`;
 }
 function dCard(x, act, img, sub, sheet) {
+  const ratio = act === 'event' ? 'r34' : 'r43';
   return `<div class="dwrap">${sheet ? edItem(sheet, x.id) : ''}<button class="dcard" data-act="${act}" data-id="${esc(x.id)}">
-    <span class="dcard-img" style="${bgStyle(img, x.title)}">${img ? '' : `<span class="ph-title">${esc(x.title)}</span>`}</span>
+    <span class="dcard-img ${ratio}" style="${bgStyle(img, x.title)}">${img ? '' : `<span class="ph-title">${esc(x.title)}</span>`}</span>
     <span class="dcard-b"><span><b>${esc(x.title)}</b><small>${esc(sub || '')}</small></span><span class="go">${ic('arrow')}</span></span></button></div>`;
 }
 function rvCard(r) {
@@ -731,7 +732,7 @@ function openEvent(id) {
 }
 function openPromo(id) {
   const p = S.promos.find(x => String(x.id) === String(id)); if (!p) return;
-  openModal('Promo', `<div class="sheet-img" style="${bgStyle(p.image, p.title)}"></div>
+  openModal('Promo', `<div class="sheet-img r43" style="${bgStyle(p.image, p.title)}"></div>
     <div class="pad" style="padding-top:12px"><h2 style="margin:6px 0">${esc(p.title)}</h2>
     ${p.valid_until ? `<div class="kv">${ic('clock')}<span>Berlaku s/d ${esc(fmtDate(p.valid_until))}</span></div>` : ''}
     ${p.outlet_id ? `<div class="kv">${ic('pin')}<span>${esc(outletName(p.outlet_id))}</span></div>` : ''}
@@ -768,18 +769,18 @@ const SCHEMA = {
   Events: { key: 'events', label: 'Event', title: 'title', img: 'poster',
     sub: r => `${fmtDate(r.date)} ${r.time || ''} • ${outletName(r.outlet_id)}`,
     fields: [{ k: 'title', l: 'Judul event', req: 1 }, { k: 'date', l: 'Tanggal', t: 'date' }, { k: 'time', l: 'Jam mulai', t: 'time' },
-      { k: 'outlet_id', l: 'Outlet', t: 'outlet' }, { k: 'poster', l: 'Poster (rasio 3:4 / portrait)', t: 'image', max: 1400 },
+      { k: 'outlet_id', l: 'Outlet', t: 'outlet' }, { k: 'poster', l: 'Poster — 1080 × 1440 px (portrait 3:4)', t: 'image', max: 1440 },
       { k: 'desc', l: 'Deskripsi / line up', t: 'textarea' }, { k: 'active', l: 'Tampilkan di aplikasi', t: 'bool' }] },
   Promos: { key: 'promos', label: 'Promo', title: 'title', img: 'image',
     sub: r => r.valid_until ? 'Berlaku s/d ' + fmtDate(r.valid_until) : 'Tanpa batas waktu',
-    fields: [{ k: 'title', l: 'Judul promo', req: 1 }, { k: 'image', l: 'Gambar (landscape 16:9 — tampil di banner beranda)', t: 'image', max: 1600 },
+    fields: [{ k: 'title', l: 'Judul promo', req: 1 }, { k: 'image', l: 'Gambar promo — 1600 × 1200 px (4:3, juga tampil di banner beranda)', t: 'image', max: 1600 },
       { k: 'desc', l: 'Keterangan', t: 'textarea' }, { k: 'valid_until', l: 'Berlaku sampai (kosongkan jika tanpa batas)', t: 'date' },
       { k: 'outlet_id', l: 'Outlet', t: 'outlet' }, { k: 'active', l: 'Tampilkan di aplikasi', t: 'bool' }] },
   Outlets: { key: 'outlets', label: 'Outlet', title: 'name', img: 'photo',
     sub: r => `${r.city || '-'} • ${r.hours || ''}`,
     fields: [{ k: 'name', l: 'Nama outlet', req: 1 }, { k: 'city', l: 'Kota', req: 1 }, { k: 'address', l: 'Alamat', t: 'textarea' },
       { k: 'hours', l: 'Jam buka', ph: '21:00 - 03:00' }, { k: 'phone', l: 'No. WA outlet (ikut menerima notifikasi)', ph: '08xxxx' },
-      { k: 'photo', l: 'Foto outlet (portrait)', t: 'image', max: 1200 }, { k: 'sort', l: 'Urutan tampil', t: 'number' },
+      { k: 'photo', l: 'Foto outlet — 1080 × 1440 px (portrait 3:4)', t: 'image', max: 1440 }, { k: 'sort', l: 'Urutan tampil', t: 'number' },
       { k: 'active', l: 'Tampilkan di aplikasi', t: 'bool' }] },
   Prices: { key: 'prices', label: 'Harga', title: 'item', img: null,
     sub: r => `${outletName(r.outlet_id)} • ${r.category || ''} • ${rupiah(r.price)}${r.min_pax ? ' • min ' + r.min_pax + ' org' : ''}`,
@@ -889,7 +890,7 @@ const TEXT_FIELDS = {
 function openTextEditor(keys) {
   const s = Object.assign({}, DEFAULTS, S.settings);
   if (keys === 'bg_url') {
-    return openModal('Gambar Utama', `<form id="setForm" class="pad">${imageField('bg_url', 'Gambar utama (banner beranda & halaman pembuka)', s.bg_url, 1800)}
+    return openModal('Gambar Utama', `<form id="setForm" class="pad">${imageField('bg_url', 'Gambar banner — 1600 × 1200 px (4:3)', s.bg_url, 1600)}
       <p class="hint">Kosongkan untuk memakai warna polos. Gambar promo juga ikut tampil bergantian di banner.</p>
       <div class="spacer"></div><button class="btn btn-primary btn-block">Simpan</button></form>`);
   }
@@ -918,8 +919,8 @@ function adminLook(s) {
     <div class="row"><div><label class="lb">Judul beranda</label><input name="hero_title" value="${esc(s.hero_title || DEFAULTS.hero_title)}"></div>
       <div><label class="lb">Kata miring (warna utama)</label><input name="hero_accent" value="${esc(s.hero_accent || DEFAULTS.hero_accent)}"></div></div>
     <label class="lb">Judul bagian "Tentang"</label><input name="about_title" value="${esc(s.about_title || DEFAULTS.about_title)}">
-    ${imageField('logo_url', 'Logo (PNG transparan disarankan)', s.logo_url, 600)}
-    ${imageField('bg_url', 'Gambar utama (halaman pembuka & banner beranda)', s.bg_url, 1800)}
+    ${imageField('logo_url', 'Logo — 600 × 200 px, PNG latar transparan', s.logo_url, 600)}
+    ${imageField('bg_url', 'Gambar banner — 1600 × 1200 px (4:3)', s.bg_url, 1600)}
     <h3 style="margin-top:28px">Tema warna</h3>
     <div class="themes">${Object.keys(THEMES).map(k => { const th = THEMES[k]; return `<label class="theme-opt"><input type="radio" name="theme" value="${k}" ${(s.theme || 'latte') === k ? 'checked' : ''}>
       <span class="sw" style="background:${th.bg}"><i style="background:${th.primary}"></i></span>${th.name}</label>`; }).join('')}</div>
